@@ -1,0 +1,33 @@
+{
+	"game": "flappybird",
+	"model": "genetic",
+	"host": "localhost",
+	"port": 4004,
+	"num_networks": 10,
+	"num_top_networks": 4,
+	"screen_resize_shape": 128,
+	"network_input_shape": 9216,
+	"network_shape": [
+		{
+			"activation": "relu",
+			"shape": 200,
+			"kernel_initializer": null,
+			"bias_initializer": null,
+			"use_bias": false
+		},
+		{
+			"activation": "sigmoid",
+			"shape": 1,
+			"kernel_initializer": null,
+			"bias_initializer": null,
+			"use_bias": false
+		}
+	],
+	"mutation_rate": 0.2,
+	"evolve_bias": false,
+	"evolve_kernel": true,
+	"scope": "network",
+	"send_pixels": true,
+	"stepping": true,
+	"assets": "assets_bw"
+}

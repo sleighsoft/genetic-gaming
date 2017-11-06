@@ -1,0 +1,7 @@
+name: genetic-gaming
+dependencies:
+  - python=3.6.2
+  - pip:
+      - pygame
+      - msgpack-rpc-python
+      - Pillow
