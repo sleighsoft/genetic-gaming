@@ -5,7 +5,6 @@ import atexit
 import pprint
 import tensorflow as tf
 
-
 game_subprocess = None
 
 
@@ -19,26 +18,26 @@ def exit_subprocesses():
 class Validator(object):
   GAMES = ['flappybird']
   ACTIVATIONS = {
-      'sigmoid': tf.sigmoid,
-      'relu': tf.nn.relu
+    'sigmoid': tf.sigmoid,
+    'relu': tf.nn.relu
   }
   INITIALIZER = {
-      'zeros': tf.zeros_initializer,
-      'ones': tf.ones_initializer,
-      'constant': tf.constant_initializer,
-      'randomUniform': tf.random_uniform_initializer,
-      'randomNormal': tf.random_normal_initializer,
-      'truncatedNormal': tf.truncated_normal_initializer,
-      'uniformUnitScaling': tf.uniform_unit_scaling_initializer,
-      'varianceScaling': tf.variance_scaling_initializer,
-      'orthogonal': tf.orthogonal_initializer
+    'zeros': tf.zeros_initializer,
+    'ones': tf.ones_initializer,
+    'constant': tf.constant_initializer,
+    'randomUniform': tf.random_uniform_initializer,
+    'randomNormal': tf.random_normal_initializer,
+    'truncatedNormal': tf.truncated_normal_initializer,
+    'uniformUnitScaling': tf.uniform_unit_scaling_initializer,
+    'varianceScaling': tf.variance_scaling_initializer,
+    'orthogonal': tf.orthogonal_initializer
   }
 
   def __init__(self, args, parser):
     self.args = args
     self.parser = parser
     self.MODELS = {
-        'genetic': self._validate_genetic
+      'genetic': self._validate_genetic
     }
 
   def validate(self):
@@ -54,7 +53,7 @@ class Validator(object):
   def _validate_key_in_values(self, key, possible_values):
     if key not in possible_values:
       self.parser.error('{} not in list of possible values {}'.format(
-          key, possible_values))
+        key, possible_values))
 
   def _validate_model(self):
     if 'model' in self.args:
@@ -75,20 +74,20 @@ class Validator(object):
   def _validate_network_shape(cls, network_shape):
     for shape in network_shape:
       shape['activation'] = cls._lookup_key_if_exists(
-          shape,
-          'activation',
-          cls.ACTIVATIONS,
-          default=None)
+        shape,
+        'activation',
+        cls.ACTIVATIONS,
+        default=None)
       shape['bias_initializer'] = cls._lookup_key_if_exists(
-          shape,
-          'bias_initializer',
-          cls.INITIALIZER,
-          default=None)
+        shape,
+        'bias_initializer',
+        cls.INITIALIZER,
+        default=None)
       shape['kernel_initializer'] = cls._lookup_key_if_exists(
-          shape,
-          'kernel_initializer',
-          cls.INITIALIZER,
-          default=None)
+        shape,
+        'kernel_initializer',
+        cls.INITIALIZER,
+        default=None)
       if 'use_bias' not in shape:
         shape['use_bias'] = False
     return network_shape
@@ -98,7 +97,7 @@ class Validator(object):
       if default is not '':
         self.args[parameter] = default
         print('Missing `{}` parameter. Default to `{}`'.format(
-            parameter, default))
+          parameter, default))
         return True
       self.parser.error('Missing `{}` parameter.'.format(parameter))
     return True
@@ -112,7 +111,7 @@ class Validator(object):
     self._check_parameter('num_top_networks')
     if self._check_parameter('network_shape'):
       args['network_shape'] = self._validate_network_shape(
-          args['network_shape'])
+        args['network_shape'])
     self._check_parameter('network_input_shape')
     self._check_parameter('mutation_rate')
     self._check_parameter('evolve_bias')
@@ -140,14 +139,14 @@ def run(args):
 def _run_genetic(args):
   from models.genetic import EvolutionSimulator
   simulator = EvolutionSimulator(
-      args['network_input_shape'],
-      args['network_shape'],
-      args['num_networks'],
-      args['num_top_networks'],
-      args['mutation_rate'],
-      args['evolve_bias'],
-      args['evolve_kernel'],
-      args['scope'])
+    args['network_input_shape'],
+    args['network_shape'],
+    args['num_networks'],
+    args['num_top_networks'],
+    args['mutation_rate'],
+    args['evolve_bias'],
+    args['evolve_kernel'],
+    args['scope'])
   if args['single_process']:
     import importlib
     module = importlib.import_module('games.{}.game'.format(args['game']))
@@ -170,23 +169,23 @@ def _run_genetic(args):
 if __name__ == "__main__":
   parser = argparse.ArgumentParser()
   parser.add_argument(
-      '-config',
-      help='Config file name to load run parameters from. If specified, all '
-      'other CLI arguments will be discarded.',
-      type=str,
-      default=None,
-      required=True
+    '-config',
+    help='Config file name to load run parameters from. If specified, all '
+         'other CLI arguments will be discarded.',
+    type=str,
+    default=None,
+    required=True
   )
   parser.add_argument(
-      '-single_process',
-      help='Will run the game with the network in the same process. No'
-      ' subprocess will be started to host the game.',
-      action='store_true'
+    '-single_process',
+    help='Will run the game with the network in the same process. No'
+         ' subprocess will be started to host the game.',
+    action='store_true'
   )
   parser.add_argument(
-      '-tf_debug',
-      help='Will set tensorflow logging to debug.',
-      action='store_true'
+    '-tf_debug',
+    help='Will set tensorflow logging to debug.',
+    action='store_true'
   )
   args = parser.parse_args()
   args = load_and_merge_args(args, parser)
@@ -196,6 +195,7 @@ if __name__ == "__main__":
   pprint.pprint(args)
   if not args['tf_debug']:
     import os
+
     os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
     tf.logging.set_verbosity(tf.logging.INFO)
   run(args)

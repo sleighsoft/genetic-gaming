@@ -12,7 +12,6 @@ import numpy as np
 
 
 class Bird(object):
-
   def __init__(self, shape, jump_time, jump_speed, jump_speed_decline,
                gravity, gravity_acceleration):
     # Static
@@ -85,7 +84,7 @@ class Game(object):
       args['assets'] = 'assets'
     # Pygame
     self.screen = pygame.display.set_mode(
-        (self.SCREEN_WIDTH, self.SCREEN_HEIGHT))
+      (self.SCREEN_WIDTH, self.SCREEN_HEIGHT))
     asset_path = os.path.dirname(os.path.realpath(__file__))
     asset_path = os.path.join(asset_path, args['assets'])
     asset_background_path = os.path.join(asset_path, 'background.png')
@@ -108,7 +107,7 @@ class Game(object):
     self.step = 0
     # RPC proxy to machine learning agent
     self.client = msgpackrpc.Client(
-        msgpackrpc.Address(self.ML_AGENT_HOST, self.ML_AGENT_PORT))
+      msgpackrpc.Address(self.ML_AGENT_HOST, self.ML_AGENT_PORT))
 
   def random_bird_shape(self):
     half_h = self.BIRD_HEIGHT // 2
@@ -220,8 +219,8 @@ class Game(object):
         bird.move()
         # Check collision
         if (bottom_pipe_bbox.colliderect(bird.rect) or
-            top_pipe_bbox.colliderect(bird.rect) or
-                not 0 < bird.rect.y < self.SCREEN_HEIGHT):
+              top_pipe_bbox.colliderect(bird.rect) or
+              not 0 < bird.rect.y < self.SCREEN_HEIGHT):
           bird.dead = True
           bird.fitness = self.calculate_current_fitness(bird)
           self.birds_alive -= 1
@@ -254,20 +253,20 @@ class Game(object):
                        (self.current_wall_x, self.get_top_pipe_y()))
       # Draw score
       self.screen.blit(font.render(
-          str('Round: {}'.format(self.round)),
-          -1,
-          (255, 255, 255)),
-          (200, 5))
+        str('Round: {}'.format(self.round)),
+        -1,
+        (255, 255, 255)),
+        (200, 5))
       self.screen.blit(font.render(
-          str('Score: {}'.format(self.counter)),
-          -1,
-          (255, 255, 255)),
-          (200, 50))
+        str('Score: {}'.format(self.counter)),
+        -1,
+        (255, 255, 255)),
+        (200, 50))
       self.screen.blit(font.render(
-          str('Alive: {}'.format(self.birds_alive)),
-          -1,
-          (255, 255, 255)),
-          (200, 100))
+        str('Alive: {}'.format(self.birds_alive)),
+        -1,
+        (255, 255, 255)),
+        (200, 100))
       if self.all_birds_dead():
         fitnesses = [bird.fitness for bird in self.birds]
         self.reset()
@@ -310,47 +309,47 @@ class Game(object):
 if __name__ == "__main__":
   parser = argparse.ArgumentParser()
   parser.add_argument(
-      '-num_networks',
-      help='Number of birds to spawn and number of networks to use for them.',
-      type=int,
-      default=None,
-      required=True
+    '-num_networks',
+    help='Number of birds to spawn and number of networks to use for them.',
+    type=int,
+    default=None,
+    required=True
   )
   parser.add_argument(
-      '--timeout',
-      help='Initial sleep time to allow the ML agent to start.',
-      type=int,
-      default=None
+    '--timeout',
+    help='Initial sleep time to allow the ML agent to start.',
+    type=int,
+    default=None
   )
   parser.add_argument(
-      '-host',
-      help='Machine learning agent host.',
-      type=str,
-      default='localhost'
+    '-host',
+    help='Machine learning agent host.',
+    type=str,
+    default='localhost'
   )
   parser.add_argument(
-      '-port',
-      help='Machine learning agent port.',
-      type=int,
-      default=4004
+    '-port',
+    help='Machine learning agent port.',
+    type=int,
+    default=4004
   )
   parser.add_argument(
-      '-assets',
-      help='Asset directory name.',
-      type=str,
-      default='assets'
+    '-assets',
+    help='Asset directory name.',
+    type=str,
+    default='assets'
   )
   parser.add_argument(
-      '-send_pixels',
-      help='If set, send the whole screen as pixels instead of special '
-      'features.',
-      action='store_true'
+    '-send_pixels',
+    help='If set, send the whole screen as pixels instead of special '
+         'features.',
+    action='store_true'
   )
   parser.add_argument(
-      '-stepping',
-      help='If set, run one bird after the other until all birds died once. '
-      'Then evolve.',
-      action='store_true'
+    '-stepping',
+    help='If set, run one bird after the other until all birds died once. '
+         'Then evolve.',
+    action='store_true'
   )
   args = parser.parse_args()
   if args.timeout:
