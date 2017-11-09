@@ -16,7 +16,6 @@ import numpy as np
 
 
 class Car(object):
-
   def __init__(self, shape, position, rotation, rotation_speed, base_velocity,
                acceleration, deceleration, acceleration_time, turn_speed,
                max_velocity, color):
@@ -96,7 +95,7 @@ class Game(object):
 
     # RPC proxy to machine learning agent
     self.client = msgpackrpc.Client(
-        msgpackrpc.Address(self.ML_AGENT_HOST, self.ML_AGENT_PORT))
+      msgpackrpc.Address(self.ML_AGENT_HOST, self.ML_AGENT_PORT))
 
     # Game
     self.STEPPING = args['stepping']
@@ -119,7 +118,7 @@ class Game(object):
     self.JUMP_SPEED_DECLINE = 1
     # Pygame
     self.screen = pygame.display.set_mode(
-        (self.SCREEN_WIDTH, self.SCREEN_HEIGHT))
+      (self.SCREEN_WIDTH, self.SCREEN_HEIGHT))
     asset_path = os.path.dirname(os.path.realpath(__file__))
     asset_path = os.path.join(asset_path, args['assets'])
     # Pymunk
@@ -156,17 +155,17 @@ class Game(object):
     """Reset game state."""
     center = (self.SCREEN_WIDTH // 2, self.SCREEN_HEIGHT // 2)
     self.cars = [
-        Car(shape=(10, 10),
-            position=center,
-            rotation=0.0,
-            rotation_speed=0.2,
-            base_velocity=5.0,
-            acceleration=1.1,
-            deceleration=0.8,
-            acceleration_time=10,
-            turn_speed=0.2,
-            max_velocity=1.3,
-            color=(0, 0, 0))]
+      Car(shape=(10, 10),
+          position=center,
+          rotation=0.0,
+          rotation_speed=0.2,
+          base_velocity=5.0,
+          acceleration=1.1,
+          deceleration=0.8,
+          acceleration_time=10,
+          turn_speed=0.2,
+          max_velocity=1.3,
+          color=(0, 0, 0))]
 
   def update_track():
     pass
@@ -234,47 +233,47 @@ class Game(object):
 if __name__ == "__main__":
   parser = argparse.ArgumentParser()
   parser.add_argument(
-      '-num_networks',
-      help='Number of birds to spawn and number of networks to use for them.',
-      type=int,
-      default=None,
-      required=True
+    '-num_networks',
+    help='Number of birds to spawn and number of networks to use for them.',
+    type=int,
+    default=None,
+    required=True
   )
   parser.add_argument(
-      '--timeout',
-      help='Initial sleep time to allow the ML agent to start.',
-      type=int,
-      default=None
+    '--timeout',
+    help='Initial sleep time to allow the ML agent to start.',
+    type=int,
+    default=None
   )
   parser.add_argument(
-      '-host',
-      help='Machine learning agent host.',
-      type=str,
-      default='localhost'
+    '-host',
+    help='Machine learning agent host.',
+    type=str,
+    default='localhost'
   )
   parser.add_argument(
-      '-port',
-      help='Machine learning agent port.',
-      type=int,
-      default=4004
+    '-port',
+    help='Machine learning agent port.',
+    type=int,
+    default=4004
   )
   parser.add_argument(
-      '-assets',
-      help='Asset directory name.',
-      type=str,
-      default='assets'
+    '-assets',
+    help='Asset directory name.',
+    type=str,
+    default='assets'
   )
   parser.add_argument(
-      '-send_pixels',
-      help='If set, send the whole screen as pixels instead of special '
-      'features.',
-      action='store_true'
+    '-send_pixels',
+    help='If set, send the whole screen as pixels instead of special '
+         'features.',
+    action='store_true'
   )
   parser.add_argument(
-      '-stepping',
-      help='If set, run one bird after the other until all birds died once. '
-      'Then evolve.',
-      action='store_true'
+    '-stepping',
+    help='If set, run one bird after the other until all birds died once. '
+         'Then evolve.',
+    action='store_true'
   )
   args = parser.parse_args()
   if args.timeout:
