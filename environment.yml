@@ -3,5 +3,7 @@ dependencies:
   - python=3.6.2
   - pip:
       - pygame
+      - pymunk
       - msgpack-rpc-python
       - Pillow
+      - tensorflow

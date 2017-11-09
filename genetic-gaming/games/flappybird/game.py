@@ -42,7 +42,7 @@ class Bird(object):
     return self.dead
 
   def move(self):
-    if self.jump_time > 0:
+    if self.is_jumping():
       self.jump_speed -= self._jump_speed_decline
       self.rect.y -= self.jump_speed
       self.jump_time -= 1
