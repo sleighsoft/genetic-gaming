@@ -4,7 +4,6 @@ import msgpackrpc
 
 
 class Network(object):
-
   def __init__(self, input_shape, network_shape, scope):
     self.scope = scope
     self.graph = self.build(input_shape, network_shape, scope)
@@ -42,7 +41,7 @@ class Network(object):
 
   def reinitialize_network(self):
     variables = tf.get_collection(
-        tf.GraphKeys.GLOBAL_VARIABLES, scope=self.scope)
+      tf.GraphKeys.GLOBAL_VARIABLES, scope=self.scope)
     init_op = tf.variables_initializer(variables)
     return init_op
 
@@ -66,7 +65,7 @@ class EvolutionSimulator(object):
     self.scope = scope
     self.num_networks = num_networks
     self.networks = self.create_networks(
-        num_networks, input_shape, network_shape, scope)
+      num_networks, input_shape, network_shape, scope)
     self.session = tf.Session()
     self.session.run(tf.global_variables_initializer())
     self.writer = tf.summary.FileWriter('./tmp/', self.session.graph)
@@ -147,8 +146,8 @@ class EvolutionSimulator(object):
         if i == 0:
           # Network#num_top_networks = Crossover of Winner0 + Winner1
           ops = self._perform_crossover(
-              network, winners[0], winners[1], self.evolve_bias,
-              self.evolve_kernel)
+            network, winners[0], winners[1], self.evolve_bias,
+            self.evolve_kernel)
           evolution_ops += ops
         elif i < len(sorted_networks[self.num_top_networks:]) - 2:
           # Network#num_top_networks+1 to Network#-2 = Crossover of 2 random
@@ -158,7 +157,7 @@ class EvolutionSimulator(object):
           while parentA == parentB:
             parentB = random.choice(winners)
           ops = self._perform_crossover(
-              network, parentA, parentB, self.evolve_bias, self.evolve_kernel)
+            network, parentA, parentB, self.evolve_bias, self.evolve_kernel)
           evolution_ops += ops
         else:
           # Network#last = Random winner
@@ -167,8 +166,8 @@ class EvolutionSimulator(object):
         # Assure, that all assignments are run perform performing mutation
         with tf.control_dependencies(evolution_ops):
           ops = self._perform_mutation(
-              network, self.mutation_rate, self.evolve_bias,
-              self.evolve_kernel)
+            network, self.mutation_rate, self.evolve_bias,
+            self.evolve_kernel)
           evolution_ops += ops
     return evolution_ops
 
@@ -196,9 +195,9 @@ class EvolutionSimulator(object):
     crossover_point = random.randint(0, len(variables_scope1) - 1)
     for i in range(crossover_point, len(variables_scope1)):
       crossover_ops1.append(
-          tf.assign(variables_crossover[i], variables_scope1[i]))
+        tf.assign(variables_crossover[i], variables_scope1[i]))
       crossover_ops2.append(
-          tf.assign(variables_crossover[i], variables_scope2[i]))
+        tf.assign(variables_crossover[i], variables_scope2[i]))
     crossover_ops = self.choose_random(crossover_ops1, crossover_ops2)
     return crossover_ops
 
@@ -211,9 +210,9 @@ class EvolutionSimulator(object):
       variables += network.trainable_biases()
     for v in variables:
       mutation = tf.cond(
-          tf.random_uniform([]) < tf.constant(mutation_rate),
-          lambda: self._mutate(v),
-          lambda: v)
+        tf.random_uniform([]) < tf.constant(mutation_rate),
+        lambda: self._mutate(v),
+        lambda: v)
       mutation_ops.append(tf.assign(v, mutation))
     return mutation_ops
 
