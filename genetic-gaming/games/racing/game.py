@@ -198,10 +198,10 @@ class Game(object):
   def init_cars(self):
     self.cars = []
     # TODO Slightly random start positions?
-    center = (self.SCREEN_WIDTH // 2, self.SCREEN_HEIGHT // 2)
+    start_position = (100, self.SCREEN_HEIGHT // 2)
     for _ in range(self.NUM_CARS):
       car = Car(shape=(15, 10),
-                position=center,
+                position=start_position,
                 rotation=0.0,
                 rotation_speed=0.05,
                 base_velocity=5.0,
@@ -221,13 +221,34 @@ class Game(object):
     # TODO(willi) Come up with a nice track layout. Just add new dicts to the
     # wall_layout list. Also check if it is possible to have rotated walls to
     # get some curves in the track instead of edges.
+
     wall_layout = [
+      # Horizontal Corridor
         {
-            'x': 300,
-            'y': 400,
-            'width': 100,
-            'height': 10
-        }
+          'x': 150,
+          'y': self.SCREEN_HEIGHT // 2 - 50,
+          'width': 200,
+          'height': 10
+        },
+        {
+          'x': 200,
+          'y': self.SCREEN_HEIGHT // 2 + 50,
+          'width': 300,
+          'height': 10
+        },
+      # Vertical Corridor
+      {
+        'x': 250,
+        'y': 110,
+        'width': 10,
+        'height': 170
+      },
+      {
+        'x': 350,
+        'y': 160,
+        'width': 10,
+        'height': 270
+      },
     ]
 
     def get_wall(x, y, width, height, color=(104, 114, 117)):
