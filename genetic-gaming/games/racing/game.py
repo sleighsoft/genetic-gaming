@@ -197,8 +197,8 @@ class Game(object):
 
   def init_cars(self):
     self.cars = []
-    # TODO Slightly random start positions?
-    start_position = (100, self.SCREEN_HEIGHT // 2)
+    RANDOM_RANGE = 40
+    start_position = (100, np.random.randint(-RANDOM_RANGE, RANDOM_RANGE) + self.SCREEN_HEIGHT // 2)
     for _ in range(self.NUM_CARS):
       car = Car(shape=(15, 10),
                 position=start_position,
