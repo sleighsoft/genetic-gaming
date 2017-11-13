@@ -48,13 +48,18 @@ class Car(object):
 
   def get_sensors(self):
     sensors = []
-    # for i in range(self.num_sensors):
     start = s_x, s_y = self.car_body.position
-    e_x, e_y = start + (self._sensor_range, 0)
-    rotation = self.car_body.angle
-    rotated_end = Car.get_rotated_point(s_x, s_y, e_x, e_y, rotation)
+    direction_offset = self._sensor_range/math.sqrt(2)                  # Sensors should have same distance
+    sensor_directions = [start + (0, self._sensor_range),               # Left
+                         start + (direction_offset, direction_offset),  # Half Left
+                         start + (self._sensor_range, 0),               # Ahead
+                         start + (direction_offset, -direction_offset), # Half Right
+                         start + (0, -self._sensor_range)]              # Right
 
-    sensors.append((start, rotated_end))
+    for sensor_direction in sensor_directions:
+      rotation = self.car_body.angle
+      rotated_end = Car.get_rotated_point(s_x, s_y, sensor_direction[0], sensor_direction[1], rotation)
+      sensors.append((start, rotated_end))
 
     return sensors
 
