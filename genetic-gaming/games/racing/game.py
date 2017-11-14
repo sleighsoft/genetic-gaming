@@ -49,16 +49,20 @@ class Car(object):
   def get_sensors(self):
     sensors = []
     start = s_x, s_y = self.car_body.position
-    direction_offset = self._sensor_range/math.sqrt(2)                  # Sensors should have same distance
+    # Sensors should have same distance
+    direction_offset = self._sensor_range / math.sqrt(2)
     sensor_directions = [start + (0, self._sensor_range),               # Left
-                         start + (direction_offset, direction_offset),  # Half Left
+                         # Half Left
+                         start + (direction_offset, direction_offset),
                          start + (self._sensor_range, 0),               # Ahead
-                         start + (direction_offset, -direction_offset), # Half Right
+                         start + (direction_offset, - \
+                                  direction_offset),  # Half Right
                          start + (0, -self._sensor_range)]              # Right
 
     for sensor_direction in sensor_directions:
       rotation = self.car_body.angle
-      rotated_end = Car.get_rotated_point(s_x, s_y, sensor_direction[0], sensor_direction[1], rotation)
+      rotated_end = Car.get_rotated_point(
+          s_x, s_y, sensor_direction[0], sensor_direction[1], rotation)
       sensors.append((start, rotated_end))
 
     return sensors
@@ -74,20 +78,24 @@ class Car(object):
     sensors = self.get_sensors()
     for sensor in sensors:
       # Determine points of impact of sensor rays
+      impacts = []
       for wall in walls:
         query = wall.segment_query(sensor[0], sensor[1])
         if query.shape is not None:
           point_of_impact = query.point
-          points_of_impact.append(point_of_impact)
-        else:
-          points_of_impact.append(None)
+          impacts.append(point_of_impact)
 
       # Calculate distance until sensor collides with an object
       start = sensor[0]
       end = sensor[1]
-      if points_of_impact[-1] is not None:
-        end = points_of_impact[-1]
-      distances.append(start.get_distance(end))
+      min_distance = start.get_distance(end)
+      for impact in impacts:
+        distance = start.get_distance(impact)
+        if min_distance is None or distance < min_distance:
+          min_distance = distance
+          end = impact
+      distances.append(min_distance)
+      points_of_impact.append(end)
 
     if screen:
       self.show_sensors(screen, points_of_impact)
@@ -203,7 +211,8 @@ class Game(object):
   def init_cars(self):
     self.cars = []
     RANDOM_RANGE = 40
-    start_position = (100, np.random.randint(-RANDOM_RANGE, RANDOM_RANGE) + self.SCREEN_HEIGHT // 2)
+    start_position = (100, np.random.randint(-RANDOM_RANGE,
+                                             RANDOM_RANGE) + self.SCREEN_HEIGHT // 2)
     for _ in range(self.NUM_CARS):
       car = Car(shape=(15, 10),
                 position=start_position,
@@ -228,32 +237,32 @@ class Game(object):
     # get some curves in the track instead of edges.
 
     wall_layout = [
-      # Horizontal Corridor
+        # Horizontal Corridor
         {
-          'x': 150,
-          'y': self.SCREEN_HEIGHT // 2 - 50,
-          'width': 200,
-          'height': 10
+            'x': 150,
+            'y': self.SCREEN_HEIGHT // 2 - 50,
+            'width': 200,
+            'height': 10
         },
         {
-          'x': 200,
-          'y': self.SCREEN_HEIGHT // 2 + 50,
-          'width': 300,
-          'height': 10
+            'x': 200,
+            'y': self.SCREEN_HEIGHT // 2 + 50,
+            'width': 300,
+            'height': 10
         },
-      # Vertical Corridor
-      {
-        'x': 250,
-        'y': 110,
-        'width': 10,
-        'height': 170
-      },
-      {
-        'x': 350,
-        'y': 160,
-        'width': 10,
-        'height': 270
-      },
+        # Vertical Corridor
+        {
+            'x': 250,
+            'y': 110,
+            'width': 10,
+            'height': 170
+        },
+        {
+            'x': 350,
+            'y': 160,
+            'width': 10,
+            'height': 270
+        },
     ]
 
     def get_wall(x, y, width, height, color=(104, 114, 117)):
@@ -291,9 +300,9 @@ class Game(object):
         # TODO Find suitable collision threshold
         # If you run into a border "distance" will only be zero when the car is
         # already stuck in the center of the wall
-        if distance < 10.0:
-          print('{} dead at {}'.format(car, distance))
-          car.is_dead = True
+      if distance < 10.0:
+        print('{} dead at {}'.format(car, distance))
+        car.is_dead = True
 
   def run(self):
     clock = pygame.time.Clock()
