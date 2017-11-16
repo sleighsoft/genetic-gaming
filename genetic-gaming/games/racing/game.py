@@ -9,10 +9,94 @@ import math
 import argparse
 import msgpackrpc
 import time
+import copy
 import pprint
 from pygame.locals import *
 from PIL import Image
 import numpy as np
+
+
+class MapGenerator(object):
+  def __init__(self, min_width, max_width, max_angle, min_length, max_length, game_height, game_width, start_point=None, start_angle=45):
+    self._min_width = min_width
+    self._max_width = max_width
+    self._max_angle = max_angle
+    self._min_length = min_length
+    self._max_length = max_length
+    self._game_height = game_height
+    self._game_width = game_width
+    self._start_point = start_point
+    self._start_angle = start_angle
+
+  def get_next_endings(self, left_start, right_start, last_angle):
+    center = Vec2d((left_start.x + right_start.x)/2, (left_start.y+right_start.y)/2)
+    length = random.uniform(self._min_length, self._max_length)
+    angle = random.uniform(last_angle-self._max_angle, last_angle+self._max_angle)
+    width = random.uniform(self._min_width, self._max_width)
+    target_center = Vec2d.unit()
+    target_center.angle = angle
+    target_center.length = length
+    target_center = target_center + center
+
+    left_end = copy.copy(target_center)
+    left_end.rotate_degrees(-90)
+    left_end.length = width / 2
+
+    right_end = copy.copy(target_center)
+    right_end.rotate_degrees(90)
+    right_end.length = width / 2
+
+    left_end = target_center + left_end
+    right_end = target_center + right_end
+    return left_end, right_end, target_center.angle_degrees, target_center
+
+  def is_valid(self, point):
+    return 0 < point.x < self._game_height and 0 < point.y < self._game_width
+
+  def get_start_points(self):
+    if self._start_point is None:
+      self._start_point = Vec2d(30, 30)
+
+    width = random.uniform(self._min_width, self._max_width)
+
+    left_end = Vec2d.unit()
+    left_end.angle_degrees= self._start_angle-90
+    left_end.length = width / 2
+
+    right_end = Vec2d.unit()
+    right_end.angle_degrees = self._start_angle+90
+    right_end.length = width / 2
+
+    return self._start_point+left_end, self._start_point+right_end
+
+  def get_wall(self, start_point, end_point):
+    return {
+      'start': start_point,
+      'end': end_point
+    }
+
+  def generate(self):
+    last_left, last_right = self.get_start_points()
+    last_angle = self._start_angle
+    tries_left = 5
+
+    found = []
+    centers = [self._start_point]
+    while tries_left > 0:
+      next_left, next_right, angle, center = self.get_next_endings(last_left, last_right, last_angle)
+
+      if self.is_valid(next_left) and self.is_valid(next_right):
+        found.append(self.get_wall(last_left, next_left))
+        found.append(self.get_wall(last_right, next_right))
+        centers.append(center)
+        tries_left = 5
+        last_left = next_left
+        last_right = next_right
+        last_angle = angle
+      else:
+        tries_left -= 1
+
+    return found, centers
 
 
 class Car(object):
@@ -187,18 +271,18 @@ class Game(object):
     self.space.gravity = pymunk.Vec2d(0., 0.)
     self.draw_options = pymunk.pygame_util.DrawOptions(self.screen)
 
-    self.init_cars()
-    self.init_walls()
+    RANDOM_RANGE = 40
+    start_position = (100, np.random.randint(-RANDOM_RANGE, RANDOM_RANGE) + self.SCREEN_HEIGHT // 2)
+    self.init_cars(start_position)
+    self.init_walls(start_position)
 
     # Dynamic
     self.round = 0
     # If -stepping
     self.step = 0
 
-  def init_cars(self):
+  def init_cars(self, start_position):
     self.cars = []
-    RANDOM_RANGE = 40
-    start_position = (100, np.random.randint(-RANDOM_RANGE, RANDOM_RANGE) + self.SCREEN_HEIGHT // 2)
     for _ in range(self.NUM_CARS):
       car = Car(shape=(15, 10),
                 position=start_position,
@@ -215,48 +299,18 @@ class Game(object):
       self.cars.append(car)
       car.add_to_space(self.space)
 
-  def init_walls(self):
+  def init_walls(self, start_position):
     self.walls = []
 
-    # TODO(willi) Come up with a nice track layout. Just add new dicts to the
-    # wall_layout list. Also check if it is possible to have rotated walls to
-    # get some curves in the track instead of edges.
+    gen = MapGenerator(
+      10, 20, 0.5, 20, 100, self.SCREEN_HEIGHT, self.SCREEN_WIDTH, start_position, 0
+    )
+    wall_layout, centers = gen.generate()
 
-    wall_layout = [
-      # Horizontal Corridor
-        {
-          'x': 150,
-          'y': self.SCREEN_HEIGHT // 2 - 50,
-          'width': 200,
-          'height': 10
-        },
-        {
-          'x': 200,
-          'y': self.SCREEN_HEIGHT // 2 + 50,
-          'width': 300,
-          'height': 10
-        },
-      # Vertical Corridor
-      {
-        'x': 250,
-        'y': 110,
-        'width': 10,
-        'height': 170
-      },
-      {
-        'x': 350,
-        'y': 160,
-        'width': 10,
-        'height': 270
-      },
-    ]
-
-    def get_wall(x, y, width, height, color=(104, 114, 117)):
-      brick_body = pymunk.Body(body_type=pymunk.Body.KINEMATIC)
-      brick_body.position = x, y
-      brick_shape = pymunk.Poly.create_box(brick_body, (width, height))
-      brick_shape.color = color
-      return brick_shape
+    def get_wall(start, end):
+      body = pymunk.Body(body_type=pymunk.Body.STATIC)
+      segment = pymunk.Segment(body, start, end, 0)
+      return segment
 
     for layout in wall_layout:
       wall = get_wall(**layout)
