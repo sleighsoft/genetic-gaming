@@ -279,7 +279,6 @@ class Car(object):
       end = sensor[1] if points_of_impact[i] is None else points_of_impact[i]
       pygame.draw.line(screen, self._sensor_color, sensor[0], end)
 
-  # @profile
   def get_sensor_distances(self, walls, screen=None):
     distances = []
     points_of_impact = []
@@ -287,11 +286,19 @@ class Car(object):
     for sensor in sensors:
       # Determine points of impact of sensor rays
       impacts = []
-      for wall in walls:
-        query = wall.segment_query(sensor[0], sensor[1])
-        if query.shape is not None:
-          point_of_impact = query.point
-          impacts.append(point_of_impact)
+      space = self.car_body.space
+      # for wall in walls:
+      #   query = wall.segment_query(sensor[0], sensor[1],
+      #                              shape_filter=pymunk.ShapeFilter(mask=0x1))
+      #   if query.shape is not None:
+      #     point_of_impact = query.point
+      #     impacts.append(point_of_impact)
+      query = space.segment_query_first(
+          sensor[0], sensor[1],
+          radius=0, shape_filter=pymunk.ShapeFilter(mask=0x1))
+      if query is not None:
+        point_of_impact = query.point
+        impacts.append(point_of_impact)
 
       # Calculate distance until sensor collides with an object
       start = sensor[0]
@@ -611,7 +618,6 @@ class Game(object):
         # If you run into a border "distance" will only be zero when the car is
         # already stuck in the center of the wall
       if distance < 5.0:
-        print(distance)
         self.kill_car(car)
 
   def manual_controls(self):
@@ -660,6 +666,7 @@ class Game(object):
               time.time() - self.start_time > 40):
         fitnesses = [car.fitness for car in self.cars]
         self.reset()
+        print('Fitnesses:')
         pprint.pprint(fitnesses)
         # Evolution
         if self.SIMULATOR:
