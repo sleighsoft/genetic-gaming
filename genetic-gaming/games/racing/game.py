@@ -49,6 +49,8 @@ class Car(object):
   def get_sensors(self):
     sensors = []
     start = s_x, s_y = self.car_body.position
+
+    # TODO Automatically create sensors based on self._num_sensors
     # Sensors should have same distance
     direction_offset = self._sensor_range / math.sqrt(2)
     sensor_directions = [start + (0, self._sensor_range),               # Left
@@ -142,6 +144,7 @@ class Car(object):
     self.rotation = self._rotation
     self.current_acceleration_time = 0
     self.is_dead = False
+    self.fitness = 0
 
   @staticmethod
   def get_rotated_point(x_1, y_1, x_2, y_2, radians):
@@ -157,6 +160,8 @@ class Car(object):
 
 class Game(object):
   def __init__(self, args, simulator=None):
+    # Manual Control
+    self.manual = args['manual'] if 'manual' in args else False
     # EvolutionServer
     self.ML_AGENT_HOST = args['host']
     self.ML_AGENT_PORT = args['port']
@@ -213,10 +218,12 @@ class Game(object):
     Y_RANDOM_RANGE = 20  # 45 - 85 is valid for this map
     X_START = 50
     Y_START_MEAN = 65
-    start_position = (X_START, np.random.randint(-Y_RANDOM_RANGE, Y_RANDOM_RANGE) + Y_START_MEAN)
     for _ in range(self.NUM_CARS):
+      start_x = X_START
+      start_y = (np.random.randint(-Y_RANDOM_RANGE,
+                                   Y_RANDOM_RANGE) + Y_START_MEAN)
       car = Car(shape=(15, 10),
-                position=start_position,
+                position=(start_x, start_y),
                 rotation=0.0,
                 rotation_speed=0.05,
                 base_velocity=5.0,
@@ -241,33 +248,36 @@ class Game(object):
 
     self.walls = []
     level = [
-      "WWWWWWWWWWWWWWWWWWWW",
-      "W                  W",
-      "W                  W",
-      "WWWWWWWWWWWWWWW    W",
-      "WEEEW         W    W",
-      "W   W         W    W",
-      "W   W     WWWWW    W",
-      "W   W     W        W",
-      "W   WWW   W        W",
-      "W     W   W        W",
-      "W     W   WWWWW    W",
-      "W     W  WW        W",
-      "W     WWWW         W",
-      "W                  W",
-      "WWWWWWWWWWWWWWWWWWWW",
+        "WWWWWWWWWWWWWWWWWWWW",
+        "W                  W",
+        "W                  W",
+        "WWWWWWWWWWWWWWW    W",
+        "WEEEW         W    W",
+        "W   W         W    W",
+        "W   W     WWWWW    W",
+        "W   W     W        W",
+        "W   WWW   W        W",
+        "W     W   W        W",
+        "W     W   WWWWW    W",
+        "W     W  WW        W",
+        "W     WWWW         W",
+        "W                  W",
+        "WWWWWWWWWWWWWWWWWWWW",
     ]
     # Parse the level string above. W = wall, E = exit
     x = y = 0
     x_step = self.SCREEN_WIDTH / len(level[0])
     y_step = self.SCREEN_HEIGHT / len(level)
-    X_OFFSET, Y_OFFSET = 13, 17  # to center the map correctly in the window (WTF I know ...)
+    # to center the map correctly in the window (WTF I know ...)
+    X_OFFSET, Y_OFFSET = 13, 17
     for row in level:
       for col in row:
         if col == "W":
-          self.walls.append(get_wall(x + X_OFFSET, y + Y_OFFSET, x_step, y_step))
+          self.walls.append(
+              get_wall(x + X_OFFSET, y + Y_OFFSET, x_step, y_step))
         if col == "E":
-          self.walls.append(get_wall(x + X_OFFSET, y + Y_OFFSET, x_step, y_step, color=(255, 0, 0)))
+          self.walls.append(get_wall(x + X_OFFSET, y + Y_OFFSET,
+                                     x_step, y_step, color=(255, 0, 0)))
         x += x_step
       y += y_step
       x = 0
@@ -279,16 +289,55 @@ class Game(object):
     for car in self.cars:
       car.reset()
 
+  def calculate_current_fitness(self, car):
+    # TODO
+    return 0.0
+
+  def build_features(self):
+    features = []
+    for car in self.cars:
+      features.append([car.get_sensor_distances(self.walls)])
+    return features
+
+  def predict(self):
+    """Predict movements of all cars using simulator."""
+    features = self.build_features()
+    if self.SIMULATOR:
+      movements = self.SIMULATOR.predict(features)
+      if movements is False:
+        print('[Error] Prediction failed!')
+        sys.exit()
+    return movements
+
   def update_track(self):
     # TODO This may be required if our track is larger than the actual screen
     # and we would have to move the camera.
     pass
 
+  def trigger_movements(self):
+    """Triggers movements for all cars and allows manual control if
+    `self.manual` is set."""
+    # Get driving predictions
+    if not self.manual:
+      movements = self.predict()
+      for movement, car in zip(movements, self.cars):
+        if movement[0] > 0.5:
+          car.trigger_rotate_right()
+        if movement[1] > 0.5:
+          car.trigger_rotate_left()
+        if movement[2] > 0.5:
+          car.trigger_acceleration()
+    else:
+      self.manual_controls()
+
   def update_cars(self):
-    # TODO Request car action from simulator see Flappybirds for an example
+    """Updates the position of all cars with the triggered movements and
+    checks for collisions."""
+    # Move the cars on screen
     for car in self.cars:
-      car.move()
-      self.check_for_collision(car)
+      if not car.is_dead:
+        car.move()
+        self.check_for_collision(car)
 
   def check_for_collision(self, car):
     distances = car.get_sensor_distances(self.walls, self.screen)
@@ -299,6 +348,26 @@ class Game(object):
       if distance < 10.0:
         print('{} dead at {}'.format(car, distance))
         car.is_dead = True
+
+  def manual_controls(self):
+    """Allow manual controls of the first car."""
+    for event in pygame.event.get():
+      if event.type == pygame.KEYDOWN:
+        if event.key == pygame.K_RIGHT:
+          self.cars[0].trigger_rotate_right()
+        if event.key == pygame.K_LEFT:
+          self.cars[0].trigger_rotate_left()
+        if event.key == pygame.K_UP:
+          self.cars[0].trigger_acceleration()
+
+    if sum(pygame.key.get_pressed()):
+      pressed_key = pygame.key.get_pressed()
+      if pressed_key[pygame.K_RIGHT]:
+        self.cars[0].trigger_rotate_right()
+      if pressed_key[pygame.K_LEFT]:
+        self.cars[0].trigger_rotate_left()
+      if pressed_key[pygame.K_UP]:
+        self.cars[0].trigger_acceleration()
 
   def run(self):
     clock = pygame.time.Clock()
@@ -312,22 +381,6 @@ class Game(object):
       for event in pygame.event.get():
         if event.type == pygame.QUIT:
           sys.exit()
-        if event.type == pygame.KEYDOWN:
-          if event.key == pygame.K_RIGHT:
-            self.cars[0].trigger_rotate_right()
-          if event.key == pygame.K_LEFT:
-            self.cars[0].trigger_rotate_left()
-          if event.key == pygame.K_UP:
-            self.cars[0].trigger_acceleration()
-
-      if sum(pygame.key.get_pressed()):
-        pressed_key = pygame.key.get_pressed()
-        if pressed_key[pygame.K_RIGHT]:
-          self.cars[0].trigger_rotate_right()
-        if pressed_key[pygame.K_LEFT]:
-          self.cars[0].trigger_rotate_left()
-        if pressed_key[pygame.K_UP]:
-          self.cars[0].trigger_acceleration()
 
       self.screen.fill((255, 255, 255))
 
@@ -335,11 +388,18 @@ class Game(object):
       self.update_track()
 
       # Cars
+      self.trigger_movements()
       self.update_cars()
 
       # Reset check
       if all([car.is_dead for car in self.cars]):
+        fitnesses = [car.fitness for car in self.cars]
         self.reset()
+        pprint.pprint(fitnesses)
+        # Evolution
+        if self.SIMULATOR:
+          print('Evolving')
+          self.SIMULATOR.evolve(fitnesses)
 
       # Pymunk & Pygame
       self.space.debug_draw(self.draw_options)
@@ -363,16 +423,10 @@ if __name__ == "__main__":
   parser = argparse.ArgumentParser()
   parser.add_argument(
       '-num_networks',
-      help='Number of birds to spawn and number of networks to use for them.',
+      help='Number of cars to spawn and number of networks to use for them.',
       type=int,
       default=None,
       required=True
-  )
-  parser.add_argument(
-      '--timeout',
-      help='Initial sleep time to allow the ML agent to start.',
-      type=int,
-      default=None
   )
   parser.add_argument(
       '-host',
@@ -401,6 +455,18 @@ if __name__ == "__main__":
   parser.add_argument(
       '-stepping',
       help='If set, run one bird after the other until all birds died once. '
+      'Then evolve.',
+      action='store_true'
+  )
+  parser.add_argument(
+      '--timeout',
+      help='Initial sleep time to allow the ML agent to start.',
+      type=int,
+      default=None
+  )
+  parser.add_argument(
+      '--manual',
+      help='If set, allow the first car to be controlled manually.'
       'Then evolve.',
       action='store_true'
   )

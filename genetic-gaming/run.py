@@ -17,7 +17,7 @@ def exit_subprocesses():
 
 
 class Validator(object):
-  GAMES = ['flappybird']
+  GAMES = ['flappybird', 'racing']
   ACTIVATIONS = {
       'sigmoid': tf.sigmoid,
       'relu': tf.nn.relu
