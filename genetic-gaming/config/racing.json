@@ -1,0 +1,37 @@
+{
+	"game": "racing",
+	"model": "genetic",
+	"host": "localhost",
+	"port": 4004,
+	"num_networks": 2,
+	"num_top_networks": 4,
+	"network_input_shape": 5,
+	"network_shape": [
+		{
+			"activation": "sigmoid",
+			"shape": 5,
+			"kernel_initializer": null,
+			"bias_initializer": null,
+			"use_bias": true
+		},
+		{
+			"activation": "sigmoid",
+			"shape": 6,
+			"kernel_initializer": null,
+			"bias_initializer": null,
+			"use_bias": true
+		},
+		{
+			"activation": "sigmoid",
+			"shape": 3,
+			"kernel_initializer": null,
+			"bias_initializer": null,
+			"use_bias": true
+		}
+	],
+	"mutation_rate": 0.2,
+	"evolve_bias": true,
+	"evolve_kernel": false,
+	"scope": "network",
+	"send_pixels": false
+}
