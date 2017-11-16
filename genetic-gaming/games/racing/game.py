@@ -21,7 +21,7 @@ PI_01 = math.pi * 0.1
 
 
 class MapGenerator(object):
-  def __init__(self, min_width, max_width, max_angle, min_length, max_length, game_height, game_width,
+  def __init__(self, min_width, max_width, min_length, max_length, game_height, game_width, max_angle, min_angle=0,
                start_point=None, start_angle=45, start_width=300):
     self._min_width = min_width
     self._max_width = max_width
@@ -33,29 +33,31 @@ class MapGenerator(object):
     self._start_point = start_point
     self._start_angle = start_angle
     self._start_width = start_width
+    self._min_angle = min_angle
     self.points = []
 
   def get_next_endings(self, left_start, right_start, last_angle):
     center = Vec2d((left_start.x + right_start.x)/2, (left_start.y+right_start.y)/2)
     length = random.uniform(self._min_length, self._max_length)
-    angle = random.uniform(last_angle-self._max_angle, last_angle+self._max_angle)
+    angle = random.uniform(self._min_angle, self._max_angle)
+    angle = random.choice([last_angle + angle, last_angle - angle])
     width = random.uniform(self._min_width, self._max_width)
     target_center = Vec2d.unit()
     target_center.angle = angle
     target_center.length = length
     target_center = target_center + center
 
-    left_end = copy.copy(target_center)
+    left_end = Vec2d.unit()
     left_end.angle = angle - PI_05
     left_end.length = width / 2
 
-    right_end = copy.copy(target_center)
+    right_end = Vec2d.unit()
     right_end.angle = angle + PI_05
     right_end.length = width / 2
 
     left_end = target_center + left_end
     right_end = target_center + right_end
-    return left_end, right_end, target_center.angle, target_center
+    return left_end, right_end, angle, target_center
 
   def is_valid(self, point):
     return 0 < point.x < self._game_width and 0 < point.y < self._game_height
@@ -114,6 +116,8 @@ class MapGenerator(object):
         last_angle = angle
       else:
         tries_left -= 1
+
+    found.append(self.get_wall(last_left, last_right))
 
     return found, centers
 
@@ -356,9 +360,9 @@ class Game(object):
     self.walls = []
 
     gen = MapGenerator(
-      min_width=40, max_width=100,
-      max_angle=PI_03,
-      min_length=20, max_length=100,
+      min_width=40, max_width=70,
+      min_angle=PI_01, max_angle=PI_03,
+      min_length=100, max_length=200,
       game_height=self.SCREEN_HEIGHT, game_width=self.SCREEN_WIDTH,
       start_point=(x_start, y_start), start_angle=0, start_width=100
     )
