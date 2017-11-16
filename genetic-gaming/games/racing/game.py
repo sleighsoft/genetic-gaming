@@ -46,11 +46,11 @@ class MapGenerator(object):
     target_center = target_center + center
 
     left_end = copy.copy(target_center)
-    left_end.rotate(-PI_05)
+    left_end.angle = angle - PI_05
     left_end.length = width / 2
 
     right_end = copy.copy(target_center)
-    right_end.rotate(PI_05)
+    right_end.angle = angle + PI_05
     right_end.length = width / 2
 
     left_end = target_center + left_end
@@ -99,7 +99,7 @@ class MapGenerator(object):
     last_angle = self._start_angle
     tries_left = 5
 
-    found = []
+    found = [self.get_wall(last_left, last_right)]
     centers = [Vec2d(self._start_point)]
     while tries_left > 0:
       next_left, next_right, angle, center = self.get_next_endings(last_left, last_right, last_angle)
@@ -323,7 +323,7 @@ class Game(object):
     X_START = 50
     Y_START_MEAN = 65
     self.init_cars(x_start=X_START, y_start=Y_START_MEAN)
-    self.init_walls(x_start=X_START, y_start=Y_START_MEAN)
+    self.init_walls(x_start=X_START-10, y_start=Y_START_MEAN)
 
     # Dynamic
     self.reset()
@@ -356,8 +356,8 @@ class Game(object):
     self.walls = []
 
     gen = MapGenerator(
-      min_width=30, max_width=100,
-      max_angle=PI_03+PI_01,
+      min_width=40, max_width=100,
+      max_angle=PI_03,
       min_length=20, max_length=100,
       game_height=self.SCREEN_HEIGHT, game_width=self.SCREEN_WIDTH,
       start_point=(x_start, y_start), start_angle=0, start_width=100
@@ -389,7 +389,7 @@ class Game(object):
       self.car_velocity_timer.update({car: self.start_time})
 
   def calculate_current_fitness(self, car):
-    return time.time() - self.start_time
+    return (car.car_body.position - self.centers[0]).length
 
   def build_features(self):
     features = []
@@ -495,7 +495,7 @@ class Game(object):
     font = pygame.font.SysFont("Arial", 50)
 
     while True:
-      clock.tick(60)
+      clock.tick(120)
 
       for event in pygame.event.get():
         if event.type == pygame.QUIT:
