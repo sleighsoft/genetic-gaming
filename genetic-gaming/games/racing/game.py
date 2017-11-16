@@ -158,7 +158,7 @@ class Car(object):
 
   @staticmethod
   def get_rotated_point(x_1, y_1, x_2, y_2, radians):
-    # Rotate x_2, y_2 around x_1, y_1 by angle.
+    """Rotate x_2, y_2 around x_1, y_1 by angle."""
     x_change = (x_2 - x_1) * math.cos(radians) + \
         (y_2 - y_1) * math.sin(radians)
     y_change = (y_1 - y_2) * math.cos(radians) - \
@@ -298,9 +298,11 @@ class Game(object):
     """Reset game state (all cars)."""
     self.round = 0
     self.start_time = time.time()
+    self.car_velocity_timer = {}
     for car in self.cars:
       car.reset()
       car.add_to_space(self.space)
+      self.car_velocity_timer.update({car: self.start_time})
 
   def calculate_current_fitness(self, car):
     return time.time() - self.start_time
@@ -350,11 +352,19 @@ class Game(object):
       if not car.is_dead:
         car.move()
         self.check_for_collision(car)
+        self.check_for_car_not_moving(car)
 
   def kill_car(self, car):
     car.is_dead = True
     car.fitness = self.calculate_current_fitness(car)
     car.remove_from_space()
+
+  def check_for_car_not_moving(self, car):
+    x_velocity, y_velocity = car.car_body.velocity
+    if x_velocity > 0 or y_velocity > 0:
+      self.car_velocity_timer[car] = time.time()
+    elif time.time() - self.car_velocity_timer[car] > 3:
+      self.kill_car(car)
 
   def check_for_collision(self, car):
     """Checks is any sensor distance is below the threshold. If so, mark car as
