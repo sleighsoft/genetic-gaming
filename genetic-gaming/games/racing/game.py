@@ -39,6 +39,7 @@ class Car(object):
     inertia = pymunk.moment_for_box(1, self._shape)
     self.car_body = pymunk.Body(1, inertia)
     self.car_shape = pymunk.Poly.create_box(self.car_body, self._shape)
+    self.car_shape.filter = pymunk.ShapeFilter(categories=0x2)
 
     # Dynamic
     self.reset()
@@ -102,6 +103,7 @@ class Car(object):
       end = sensor[1] if points_of_impact[i] is None else points_of_impact[i]
       pygame.draw.line(screen, self._sensor_color, sensor[0], end)
 
+  # @profile
   def get_sensor_distances(self, walls, screen=None):
     distances = []
     points_of_impact = []
@@ -253,6 +255,7 @@ class Game(object):
       brick_body = pymunk.Body(body_type=pymunk.Body.KINEMATIC)
       brick_body.position = x, y
       brick_shape = pymunk.Poly.create_box(brick_body, (width, height))
+      brick_shape.filter = pymunk.ShapeFilter(categories=0x1)
       brick_shape.color = color
       return brick_shape
 
@@ -310,7 +313,11 @@ class Game(object):
   def build_features(self):
     features = []
     for car in self.cars:
-      features.append([car.get_sensor_distances(self.walls)])
+      if car.is_dead:
+        # TODO Make this dynamically adjust to num_sensors
+        features.append([[0.0 for _ in range(5)]])
+      else:
+        features.append([car.get_sensor_distances(self.walls)])
     return features
 
   def predict(self):
@@ -369,12 +376,16 @@ class Game(object):
   def check_for_collision(self, car):
     """Checks is any sensor distance is below the threshold. If so, mark car as
     dead, set cars fitness and remove it from the space."""
-    distances = car.get_sensor_distances(self.walls, self.screen)
+    walls_in_range = self.space.point_query(
+        car.car_body.position, car._sensor_range, pymunk.ShapeFilter(mask=0x1))
+    walls_in_range = [query.shape for query in walls_in_range]
+    distances = car.get_sensor_distances(walls_in_range, self.screen)
     for distance in distances:
         # TODO Find suitable collision threshold
         # If you run into a border "distance" will only be zero when the car is
         # already stuck in the center of the wall
-      if distance < 10.0:
+      if distance < 5.0:
+        print(distance)
         self.kill_car(car)
 
   def manual_controls(self):
