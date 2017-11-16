@@ -210,9 +210,10 @@ class Game(object):
 
   def init_cars(self):
     self.cars = []
-    RANDOM_RANGE = 40
-    start_position = (100, np.random.randint(-RANDOM_RANGE,
-                                             RANDOM_RANGE) + self.SCREEN_HEIGHT // 2)
+    Y_RANDOM_RANGE = 20  # 45 - 85 is valid for this map
+    X_START = 50
+    Y_START_MEAN = 65
+    start_position = (X_START, np.random.randint(-Y_RANDOM_RANGE, Y_RANDOM_RANGE) + Y_START_MEAN)
     for _ in range(self.NUM_CARS):
       car = Car(shape=(15, 10),
                 position=start_position,
@@ -230,40 +231,6 @@ class Game(object):
       car.add_to_space(self.space)
 
   def init_walls(self):
-    self.walls = []
-
-    # TODO(willi) Come up with a nice track layout. Just add new dicts to the
-    # wall_layout list. Also check if it is possible to have rotated walls to
-    # get some curves in the track instead of edges.
-
-    wall_layout = [
-        # Horizontal Corridor
-        {
-            'x': 150,
-            'y': self.SCREEN_HEIGHT // 2 - 50,
-            'width': 200,
-            'height': 10
-        },
-        {
-            'x': 200,
-            'y': self.SCREEN_HEIGHT // 2 + 50,
-            'width': 300,
-            'height': 10
-        },
-        # Vertical Corridor
-        {
-            'x': 250,
-            'y': 110,
-            'width': 10,
-            'height': 170
-        },
-        {
-            'x': 350,
-            'y': 160,
-            'width': 10,
-            'height': 270
-        },
-    ]
 
     def get_wall(x, y, width, height, color=(104, 114, 117)):
       brick_body = pymunk.Body(body_type=pymunk.Body.KINEMATIC)
@@ -272,9 +239,38 @@ class Game(object):
       brick_shape.color = color
       return brick_shape
 
-    for layout in wall_layout:
-      wall = get_wall(**layout)
-      self.walls.append(wall)
+    self.walls = []
+    level = [
+      "WWWWWWWWWWWWWWWWWWWW",
+      "W                  W",
+      "W                  W",
+      "WWWWWWWWWWWWWWW    W",
+      "WEEEW         W    W",
+      "W   W         W    W",
+      "W   W     WWWWW    W",
+      "W   W     W        W",
+      "W   WWW   W        W",
+      "W     W   W        W",
+      "W     W   WWWWW    W",
+      "W     W  WW        W",
+      "W     WWWW         W",
+      "W                  W",
+      "WWWWWWWWWWWWWWWWWWWW",
+    ]
+    # Parse the level string above. W = wall, E = exit
+    x = y = 0
+    x_step = self.SCREEN_WIDTH / len(level[0])
+    y_step = self.SCREEN_HEIGHT / len(level)
+    X_OFFSET, Y_OFFSET = 13, 17  # to center the map correctly in the window (WTF I know ...)
+    for row in level:
+      for col in row:
+        if col == "W":
+          self.walls.append(get_wall(x + X_OFFSET, y + Y_OFFSET, x_step, y_step))
+        if col == "E":
+          self.walls.append(get_wall(x + X_OFFSET, y + Y_OFFSET, x_step, y_step, color=(255, 0, 0)))
+        x += x_step
+      y += y_step
+      x = 0
 
     self.space.add(self.walls)
 
