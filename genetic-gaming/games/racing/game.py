@@ -294,6 +294,8 @@ class Game(object):
 
     # Game
     self.STEPPING = args['stepping']
+    self.MAP_GENERATOR = args.get('map_generator', 'random')
+    self.FITNESS_MODE = args.get('fitness_mode', 'distance_to_start')
     self.SCREEN_RESIZE_SHAPE = None
     if 'screen_resize_shape' in args:
       self.SCREEN_RESIZE_SHAPE = args['screen_resize_shape']
@@ -326,6 +328,11 @@ class Game(object):
 
     X_START = 50
     Y_START_MEAN = 65
+
+    # Game vars
+    self.walls = []
+    self.centers = []
+
     self.init_cars(x_start=X_START, y_start=Y_START_MEAN)
     self.init_walls(x_start=X_START-10, y_start=Y_START_MEAN)
 
@@ -357,6 +364,13 @@ class Game(object):
       car.add_to_space(self.space)
 
   def init_walls(self, x_start, y_start):
+    generators = {
+      'random': self.init_walls_randomly,
+      'map': self.init_walls_with_map
+    }
+    generators.get(self.MAP_GENERATOR)(x_start, y_start)
+
+  def init_walls_randomly(self, x_start, y_start):
     self.walls = []
 
     gen = MapGenerator(
@@ -382,6 +396,51 @@ class Game(object):
 
     self.space.add(self.walls)
 
+  def init_walls_with_map(self, x_start, y_start):
+
+    def get_wall(x, y, width, height, color=(104, 114, 117)):
+      brick_body = pymunk.Body(body_type=pymunk.Body.KINEMATIC)
+      brick_body.position = x, y
+      brick_shape = pymunk.Poly.create_box(brick_body, (width, height))
+      brick_shape.filter = pymunk.ShapeFilter(categories=0x1)
+      brick_shape.color = color
+      return brick_shape
+
+    self.walls = []
+    level = [
+      "WWWWWWWWWWWWWWWWWWWW",
+      "W                  W",
+      "W                  W",
+      "WWWWWWWWWWWWWWW    W",
+      "WEEEW         W    W",
+      "W   W         W    W",
+      "W   W     WWWWW    W",
+      "W   W     W        W",
+      "W   WWW   W        W",
+      "W     W   W        W",
+      "W     W   WWWWW    W",
+      "W     W  WW        W",
+      "W     WWWW         W",
+      "W                  W",
+      "WWWWWWWWWWWWWWWWWWWW",
+    ]
+    # Parse the level string above. W = wall, E = exit
+    x = y = 0
+    x_step = self.SCREEN_WIDTH / len(level[0])
+    y_step = self.SCREEN_HEIGHT / len(level)
+    X_OFFSET, Y_OFFSET = 13, 17  # to center the map correctly in the window (WTF I know ...)
+    for row in level:
+      for col in row:
+        if col == "W":
+          self.walls.append(get_wall(x + X_OFFSET, y + Y_OFFSET, x_step, y_step))
+        if col == "E":
+          self.walls.append(get_wall(x + X_OFFSET, y + Y_OFFSET, x_step, y_step, color=(255, 0, 0)))
+        x += x_step
+      y += y_step
+      x = 0
+
+    self.space.add(self.walls)
+
   def reset(self):
     """Reset game state (all cars)."""
     self.round = 0
@@ -393,7 +452,11 @@ class Game(object):
       self.car_velocity_timer.update({car: self.start_time})
 
   def calculate_current_fitness(self, car):
-    return (car.car_body.position - self.centers[0]).length
+    calculators = {
+      'distance_to_start': lambda: (car.car_body.position - self.centers[0]).length,
+      'time': lambda: time.time() - self.start_time
+    }
+    return calculators.get(self.FITNESS_MODE)()
 
   def build_features(self):
     features = []
