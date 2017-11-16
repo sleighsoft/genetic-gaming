@@ -15,9 +15,14 @@ from pygame.locals import *
 from PIL import Image
 import numpy as np
 
+PI_05 = math.pi * 0.5
+PI_03 = math.pi * 0.3
+PI_01 = math.pi * 0.1
+
 
 class MapGenerator(object):
-  def __init__(self, min_width, max_width, max_angle, min_length, max_length, game_height, game_width, start_point=None, start_angle=45):
+  def __init__(self, min_width, max_width, max_angle, min_length, max_length, game_height, game_width,
+               start_point=None, start_angle=45, start_width=300):
     self._min_width = min_width
     self._max_width = max_width
     self._max_angle = max_angle
@@ -27,6 +32,8 @@ class MapGenerator(object):
     self._game_width = game_width
     self._start_point = start_point
     self._start_angle = start_angle
+    self._start_width = start_width
+    self.points = []
 
   def get_next_endings(self, left_start, right_start, last_angle):
     center = Vec2d((left_start.x + right_start.x)/2, (left_start.y+right_start.y)/2)
@@ -39,35 +46,47 @@ class MapGenerator(object):
     target_center = target_center + center
 
     left_end = copy.copy(target_center)
-    left_end.rotate_degrees(-90)
+    left_end.rotate(-PI_05)
     left_end.length = width / 2
 
     right_end = copy.copy(target_center)
-    right_end.rotate_degrees(90)
+    right_end.rotate(PI_05)
     right_end.length = width / 2
 
     left_end = target_center + left_end
     right_end = target_center + right_end
-    return left_end, right_end, target_center.angle_degrees, target_center
+    return left_end, right_end, target_center.angle, target_center
 
   def is_valid(self, point):
-    return 0 < point.x < self._game_height and 0 < point.y < self._game_width
+    return 0 < point.x < self._game_width and 0 < point.y < self._game_height
+
+  def zero_border_vector(self, point):
+    def zero_value(val, min=0, max=100):
+      if val < min:
+        return min
+      if val > max:
+        return max
+      return val
+
+    point.x = zero_value(point.x, max=self._game_width)
+    point.y = zero_value(point.y, max=self._game_height)
+
+    return point
 
   def get_start_points(self):
     if self._start_point is None:
       self._start_point = Vec2d(30, 30)
 
-    width = random.uniform(self._min_width, self._max_width)
-
     left_end = Vec2d.unit()
-    left_end.angle_degrees= self._start_angle-90
-    left_end.length = width / 2
+    left_end.angle = self._start_angle-PI_05
+    left_end.length = self._start_width / 2
 
     right_end = Vec2d.unit()
-    right_end.angle_degrees = self._start_angle+90
-    right_end.length = width / 2
+    right_end.angle = self._start_angle+PI_05
+    right_end.length = self._start_width / 2
 
-    return self._start_point+left_end, self._start_point+right_end
+    return self.zero_border_vector(self._start_point+left_end), \
+           self.zero_border_vector(self._start_point+right_end)
 
   def get_wall(self, start_point, end_point):
     return {
@@ -81,7 +100,7 @@ class MapGenerator(object):
     tries_left = 5
 
     found = []
-    centers = [self._start_point]
+    centers = [Vec2d(self._start_point)]
     while tries_left > 0:
       next_left, next_right, angle, center = self.get_next_endings(last_left, last_right, last_angle)
 
@@ -299,25 +318,23 @@ class Game(object):
     self.space.gravity = pymunk.Vec2d(0., 0.)
     self.draw_options = pymunk.pygame_util.DrawOptions(self.screen)
 
-    RANDOM_RANGE = 40
-    start_position = (100, np.random.randint(-RANDOM_RANGE, RANDOM_RANGE) + self.SCREEN_HEIGHT // 2)
-    self.init_cars(start_position)
-    self.init_walls(start_position)
+    X_START = 50
+    Y_START_MEAN = 65
+    self.init_cars(x_start=X_START, y_start=Y_START_MEAN)
+    self.init_walls(x_start=X_START, y_start=Y_START_MEAN)
 
     # Dynamic
     self.reset()
     # If -stepping
     self.step = 0
 
-  def init_cars(self, start_position):
+  def init_cars(self, x_start, y_start):
     self.cars = []
     Y_RANDOM_RANGE = 20  # 45 - 85 is valid for this map
-    X_START = 50
-    Y_START_MEAN = 65
     for _ in range(self.NUM_CARS):
-      start_x = X_START
+      start_x = x_start
       start_y = (np.random.randint(-Y_RANDOM_RANGE,
-                                   Y_RANDOM_RANGE) + Y_START_MEAN)
+                                   Y_RANDOM_RANGE) + y_start)
       car = Car(shape=(15, 10),
                 position=(start_x, start_y),
                 rotation=0.0,
@@ -333,16 +350,22 @@ class Game(object):
       self.cars.append(car)
       car.add_to_space(self.space)
 
-  def init_walls(self, start_position):
+  def init_walls(self, x_start, y_start):
     self.walls = []
 
     gen = MapGenerator(
-      10, 20, 0.5, 20, 100, self.SCREEN_HEIGHT, self.SCREEN_WIDTH, start_position, 0
+      min_width=30, max_width=100,
+      max_angle=PI_03+PI_01,
+      min_length=20, max_length=100,
+      game_height=self.SCREEN_HEIGHT, game_width=self.SCREEN_WIDTH,
+      start_point=(x_start, y_start), start_angle=0, start_width=100
     )
     wall_layout, centers = gen.generate()
+    self.centers = centers
 
     def get_wall(start, end):
       body = pymunk.Body(body_type=pymunk.Body.STATIC)
+      body.width = 5
       segment = pymunk.Segment(body, start, end, 0)
       return segment
 
@@ -490,6 +513,11 @@ class Game(object):
           else:
             print('Evolving')
             self.SIMULATOR.evolve(fitnesses)
+
+      # Draw centers
+
+      for center in self.centers:
+        pygame.draw.circle(self.screen, 0x00ff00, (int(round(center.x)), int(round(center.y))), 5)
 
       # Pymunk & Pygame calls
       self.space.debug_draw(self.draw_options)
