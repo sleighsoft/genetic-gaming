@@ -43,8 +43,36 @@ class Car(object):
     # Dynamic
     self.reset()
 
+  def reset(self):
+    """Reset car to initial settings."""
+    # Pymunk
+    self.car_body.position = self._position
+    self.car_shape.color = self._color
+    self.car_shape.elasticity = 1.0
+    self.car_shape.sensor = True
+    self.car_body.angle = self._rotation
+    self.car_body.velocity = Vec2d(0, 0)
+    driving_direction = Vec2d(0, 0).rotated(self.car_body.angle)
+    self.car_body.apply_impulse_at_world_point(driving_direction)
+
+    # Dynamic
+    self.velocity = 0
+    self.rotation = self._rotation
+    self.current_acceleration_time = 0
+    self.is_dead = False
+    self.fitness = 0.0
+    self.previous_position = self._position
+
   def add_to_space(self, space):
-    space.add(self.car_body, self.car_shape)
+    """Adds both car_body and car_shape to the space if none has been set
+    yet."""
+    if self.car_body.space is None:
+      space.add(self.car_body, self.car_shape)
+
+  def remove_from_space(self):
+    """Removes the car_body and car_shape from their space if one is set."""
+    if self.car_body.space is not None:
+      self.car_body.space.remove(self.car_body, self.car_shape)
 
   def get_sensors(self):
     sensors = []
@@ -128,24 +156,6 @@ class Car(object):
     self.car_body.angle = self.rotation
     self.car_body.velocity = self.velocity * driving_direction
 
-  def reset(self):
-    """Reset car to initial settings."""
-    # Pymunk
-    self.car_body.position = self._position
-    self.car_shape.color = self._color
-    self.car_shape.elasticity = 1.0
-    self.car_body.angle = self._rotation
-    self.car_body.velocity = Vec2d(0, 0)
-    driving_direction = Vec2d(0, 0).rotated(self.car_body.angle)
-    self.car_body.apply_impulse_at_world_point(driving_direction)
-
-    # Dynamic
-    self.velocity = 0
-    self.rotation = self._rotation
-    self.current_acceleration_time = 0
-    self.is_dead = False
-    self.fitness = 0
-
   @staticmethod
   def get_rotated_point(x_1, y_1, x_2, y_2, radians):
     # Rotate x_2, y_2 around x_1, y_1 by angle.
@@ -209,7 +219,7 @@ class Game(object):
     self.init_walls()
 
     # Dynamic
-    self.round = 0
+    self.reset()
     # If -stepping
     self.step = 0
 
@@ -285,13 +295,15 @@ class Game(object):
     self.space.add(self.walls)
 
   def reset(self):
-    """Reset game state."""
+    """Reset game state (all cars)."""
+    self.round = 0
+    self.start_time = time.time()
     for car in self.cars:
       car.reset()
+      car.add_to_space(self.space)
 
   def calculate_current_fitness(self, car):
-    # TODO
-    return 0.0
+    return time.time() - self.start_time
 
   def build_features(self):
     features = []
@@ -300,7 +312,7 @@ class Game(object):
     return features
 
   def predict(self):
-    """Predict movements of all cars using simulator."""
+    """Predict movements of all cars using `self.SIMULATOR."""
     features = self.build_features()
     if self.SIMULATOR:
       movements = self.SIMULATOR.predict(features)
@@ -315,7 +327,7 @@ class Game(object):
     pass
 
   def trigger_movements(self):
-    """Triggers movements for all cars and allows manual control if
+    """Triggers movements for all cars and allows manual keyboard control if
     `self.manual` is set."""
     # Get driving predictions
     if not self.manual:
@@ -339,15 +351,21 @@ class Game(object):
         car.move()
         self.check_for_collision(car)
 
+  def kill_car(self, car):
+    car.is_dead = True
+    car.fitness = self.calculate_current_fitness(car)
+    car.remove_from_space()
+
   def check_for_collision(self, car):
+    """Checks is any sensor distance is below the threshold. If so, mark car as
+    dead, set cars fitness and remove it from the space."""
     distances = car.get_sensor_distances(self.walls, self.screen)
     for distance in distances:
         # TODO Find suitable collision threshold
         # If you run into a border "distance" will only be zero when the car is
         # already stuck in the center of the wall
       if distance < 10.0:
-        print('{} dead at {}'.format(car, distance))
-        car.is_dead = True
+        self.kill_car(car)
 
   def manual_controls(self):
     """Allow manual controls of the first car."""
@@ -377,31 +395,35 @@ class Game(object):
     while True:
       clock.tick(60)
 
-      # TODO Allow either manual single player or genetic algorithm
       for event in pygame.event.get():
         if event.type == pygame.QUIT:
           sys.exit()
 
       self.screen.fill((255, 255, 255))
 
-      # Track
+      # Update Track
       self.update_track()
 
-      # Cars
+      # Update Cars
       self.trigger_movements()
       self.update_cars()
 
-      # Reset check
-      if all([car.is_dead for car in self.cars]):
+      # Reset Game & Update Networks, if all cars are dead
+      if (all([car.is_dead for car in self.cars]) or
+              time.time() - self.start_time > 40):
         fitnesses = [car.fitness for car in self.cars]
         self.reset()
         pprint.pprint(fitnesses)
         # Evolution
         if self.SIMULATOR:
-          print('Evolving')
-          self.SIMULATOR.evolve(fitnesses)
+          if sum(fitnesses) == 0:
+            print('Resetting networks')
+            self.SIMULATOR.reset()
+          else:
+            print('Evolving')
+            self.SIMULATOR.evolve(fitnesses)
 
-      # Pymunk & Pygame
+      # Pymunk & Pygame calls
       self.space.debug_draw(self.draw_options)
       pygame.display.update()
       fps = 60
@@ -409,7 +431,7 @@ class Game(object):
       self.space.step(dt)
 
   def get_rotated_point(self, x_1, y_1, x_2, y_2, radians):
-    # Rotate x_2, y_2 around x_1, y_1 by angle.
+    """Rotates a point (x2, y2) around (x1, y1) by radians."""
     x_change = (x_2 - x_1) * math.cos(radians) + \
         (y_2 - y_1) * math.sin(radians)
     y_change = (y_1 - y_2) * math.cos(radians) - \

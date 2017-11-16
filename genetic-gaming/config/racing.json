@@ -3,7 +3,7 @@
 	"model": "genetic",
 	"host": "localhost",
 	"port": 4004,
-	"num_networks": 2,
+	"num_networks": 10,
 	"num_top_networks": 4,
 	"network_input_shape": 5,
 	"network_shape": [
