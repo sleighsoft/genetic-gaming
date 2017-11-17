@@ -29,7 +29,7 @@ class MapGenerator(object):
     if isinstance(seed, str):
       seed = binascii.unhexlify(seed)
 
-    self.random = random.seed(seed)
+    self.random = random.Random(seed)
 
     print('Using Seed: "' + binascii.hexlify(seed).decode('utf-8') + '"')
     self._min_width = min_width
@@ -47,10 +47,10 @@ class MapGenerator(object):
 
   def get_next_endings(self, left_start, right_start, last_angle):
     center = Vec2d((left_start.x + right_start.x)/2, (left_start.y+right_start.y)/2)
-    length = random.uniform(self._min_length, self._max_length)
-    angle = random.uniform(self._min_angle, self._max_angle)
-    angle = random.choice([last_angle + angle, last_angle - angle])
-    width = random.uniform(self._min_width, self._max_width)
+    length = self.random.uniform(self._min_length, self._max_length)
+    angle = self.random.uniform(self._min_angle, self._max_angle)
+    angle = self.random.choice([last_angle + angle, last_angle - angle])
+    width = self.random.uniform(self._min_width, self._max_width)
     target_center = Vec2d.unit()
     target_center.angle = angle
     target_center.length = length
