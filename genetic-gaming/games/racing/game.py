@@ -14,6 +14,7 @@ import pprint
 from pygame.locals import *
 from PIL import Image
 import numpy as np
+import binascii
 
 PI_05 = math.pi * 0.5
 PI_03 = math.pi * 0.3
@@ -22,7 +23,15 @@ PI_01 = math.pi * 0.1
 
 class MapGenerator(object):
   def __init__(self, min_width, max_width, min_length, max_length, game_height, game_width, max_angle, min_angle=0,
-               start_point=None, start_angle=45, start_width=300):
+               start_point=None, start_angle=45, start_width=300, seed=None):
+    seed = seed or os.urandom(10)
+
+    if isinstance(seed, str):
+      seed = binascii.unhexlify(seed)
+
+    self.random = random.seed(seed)
+
+    print('Using Seed: "' + binascii.hexlify(seed).decode('utf-8') + '"')
     self._min_width = min_width
     self._max_width = max_width
     self._max_angle = max_angle
@@ -295,6 +304,7 @@ class Game(object):
     # Game
     self.STEPPING = args['stepping']
     self.MAP_GENERATOR = args.get('map_generator', 'random')
+    self.MAP_SEED = args.get('map_seed', None)
     self.FITNESS_MODE = args.get('fitness_mode', 'distance_to_start')
     self.SCREEN_RESIZE_SHAPE = None
     if 'screen_resize_shape' in args:
@@ -378,7 +388,8 @@ class Game(object):
       min_angle=PI_01, max_angle=PI_03,
       min_length=100, max_length=200,
       game_height=self.SCREEN_HEIGHT, game_width=self.SCREEN_WIDTH,
-      start_point=(x_start, y_start), start_angle=0, start_width=100
+      start_point=(x_start, y_start), start_angle=0, start_width=100,
+      seed=self.MAP_SEED
     )
     wall_layout, centers = gen.generate()
     self.centers = centers
