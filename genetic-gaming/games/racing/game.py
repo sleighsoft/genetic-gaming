@@ -23,7 +23,7 @@ PI_01 = math.pi * 0.1
 
 class MapGenerator(object):
   def __init__(self, min_width, max_width, min_length, max_length, game_height, game_width, max_angle, min_angle=0,
-               start_point=None, start_angle=45, start_width=300, seed=None):
+               start_point=None, start_angle=45, start_width=300, seed=None, max_tries=10):
     seed = seed or os.urandom(10)
 
     if isinstance(seed, str):
@@ -43,6 +43,7 @@ class MapGenerator(object):
     self._start_angle = start_angle
     self._start_width = start_width
     self._min_angle = min_angle
+    self._max_tries = max_tries
     self.points = []
 
   def get_next_endings(self, left_start, right_start, last_angle):
@@ -108,7 +109,7 @@ class MapGenerator(object):
   def generate(self):
     last_left, last_right = self.get_start_points()
     last_angle = self._start_angle
-    tries_left = 5
+    tries_left = self._max_tries
 
     found = [self.get_wall(last_left, last_right)]
     centers = [Vec2d(self._start_point)]
@@ -119,7 +120,7 @@ class MapGenerator(object):
         found.append(self.get_wall(last_left, next_left))
         found.append(self.get_wall(last_right, next_right))
         centers.append(center)
-        tries_left = 5
+        tries_left = self._max_tries
         last_left = next_left
         last_right = next_right
         last_angle = angle
