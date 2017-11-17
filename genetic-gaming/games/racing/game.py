@@ -466,6 +466,7 @@ class Game(object):
   def calculate_current_fitness(self, car):
     calculators = {
       'distance_to_start': lambda: (car.car_body.position - self.centers[0]).length - (car.car_body.position - self.centers[-1]).length,
+      'distance_to_end': lambda: -(car.car_body.position - self.centers[-1]).length,
       'time': lambda: time.time() - self.start_time
     }
     return calculators.get(self.FITNESS_MODE)()
