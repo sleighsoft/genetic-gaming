@@ -4,7 +4,7 @@
 	"host": "localhost",
 	"map_generator": "random",
 	"map_seed": null,
-	"fitness_mode": "distance_to_end",
+	"fitness_mode": "distance_to_start",
 	"port": 4004,
 	"num_networks": 10,
 	"num_top_networks": 4,
