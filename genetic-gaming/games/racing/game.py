@@ -637,6 +637,7 @@ class Game(object):
       if pressed_key[pygame.K_UP]:
         self.cars[0].trigger_acceleration()
 
+  @profile
   def run(self):
     clock = pygame.time.Clock()
     pygame.font.init()
@@ -673,7 +674,6 @@ class Game(object):
           else:
             print('Evolving')
             self.SIMULATOR.evolve(fitnesses)
-            self.SIMULATOR.save_networks()
 
       # Draw centers
 

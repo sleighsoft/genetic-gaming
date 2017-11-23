@@ -261,6 +261,7 @@ def genetic_settings(argument=None):
   argument.register_parameter_with_default('stepping', False)
   argument.register_parameter_with_default('tf_seed', None)
   argument.register_parameter_with_default('map_seed', None)
+  argument.register_parameter_with_default('tf_save_model_steps', 10)
   argument.register_parameter_with_function(
       'network_shape', GeneticValidator.validate_network_shape)
   return argument
@@ -302,7 +303,8 @@ def _run_genetic(args):
       args['evolve_kernel'],
       args['scope'],
       args['save_path'],
-      args['tf_seed'])
+      args['tf_save_model_steps'],
+      seed=args['tf_seed'])
   if args['single_process']:
     import importlib
     module = importlib.import_module('games.{}.game'.format(args['game']))

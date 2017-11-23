@@ -60,6 +60,7 @@ class EvolutionSimulator(object):
                evolve_kernel,
                scope,
                save_path,
+               save_model_steps,
                seed=None):
     assert num_networks > 1
     assert num_top_networks > 1
@@ -74,6 +75,8 @@ class EvolutionSimulator(object):
     self.session = tf.Session()
     self.session.run(tf.global_variables_initializer())
     self.save_path = save_path
+    self.save_model_steps = save_model_steps
+    self.current_step = 0
     self.writer = tf.summary.FileWriter(self.save_path, self.session.graph)
     self.saver = tf.train.Saver(save_relative_paths=True)
     if seed is None:
@@ -118,11 +121,15 @@ class EvolutionSimulator(object):
     evolution = self.evolve_networks()
     self.session.run(evolution)
     print('Evolution took {} seconds!'.format(time.time() - start_time))
+    self.current_step += 1
+    if self.current_step % self.save_model_steps == 0:
+      self.save_networks()
     return True
 
   def reset(self):
     self._reset_fitness_for_all()
     self._reinitialize_all()
+    self.current_step = 0
     return True
 
   def _reset_fitness_for_all(self):
@@ -134,11 +141,16 @@ class EvolutionSimulator(object):
 
   def save_networks(self):
     print('Saving networks')
+    start_time = time.time()
     self.saver.save(self.session, self.save_path)
+    print('Saving took {} seconds'.format(time.time() - start_time))
 
   def restore_networks(self):
-    print('Restoring networks')
-    self.saver.restore(self.session, self.save_path)
+    if tf.train.latest_checkpoint(self.save_path):
+      print('Restoring networks')
+      start_time = time.time()
+      self.saver.restore(self.session, self.save_path)
+      print('Restoring took {} seconds'.format(time.time() - start_time))
 
   @staticmethod
   def create_networks(num_networks, input_shape, network_shape, base_scope):
