@@ -143,7 +143,7 @@ class FitnessCalculator(object):
 
 class DistanceToStartCalculator(FitnessCalculator):
   def __call__(self, car):
-    return (car_body.position - self._game.centers[0]).length,
+    return (car.car_body.position - self._game.centers[0]).length,
 
 
 class DistanceToEndCalculator(FitnessCalculator):
@@ -154,6 +154,16 @@ class DistanceToEndCalculator(FitnessCalculator):
 class TimeCalculator(FitnessCalculator):
   def __call__(self, car):
     return time.time() - self._game.start_time
+
+
+class FastestCalculator(FitnessCalculator):
+  def __call__(self, car):
+    return max(car.velocities)
+
+
+class FastestAverageCalculator(FitnessCalculator):
+  def __call__(self, car):
+    return sum(car.velocities)/len(car.velocities)
 
 
 class PathDistanceCalculator(FitnessCalculator):
@@ -192,6 +202,16 @@ class PathDistanceCalculator(FitnessCalculator):
     return (car.car_body.position-self._game.centers[last]).length + found_d
 
 
+class FastestAveragePathCalculator(FitnessCalculator):
+  def __init__(self, game):
+    super().__init__(game)
+    self._path_distance_calculator = PathDistanceCalculator(game)
+
+  def __call__(self, car):
+    WEIGHT_SPEED, WEIGHT_PATH = 1, 10
+    return WEIGHT_SPEED * sum(car.velocities)/len(car.velocities) + WEIGHT_PATH * self._path_distance_calculator(car)
+
+
 class Car(object):
 
   def __init__(self, shape, position, rotation, rotation_speed, base_velocity,
@@ -217,6 +237,7 @@ class Car(object):
     self.car_body = pymunk.Body(1, inertia)
     self.car_shape = pymunk.Poly.create_box(self.car_body, self._shape)
     self.car_shape.filter = pymunk.ShapeFilter(categories=0x2)
+    self.velocities = []
 
     # Dynamic
     self.reset()
@@ -335,6 +356,7 @@ class Car(object):
     driving_direction = Vec2d(1, 0).rotated(self.rotation)
     self.car_body.angle = self.rotation
     self.car_body.velocity = self.velocity * driving_direction
+    self.velocities.append(self.car_body.velocity.get_length())
 
   @staticmethod
   def get_rotated_point(x_1, y_1, x_2, y_2, radians):
@@ -353,7 +375,10 @@ class Game(object):
     'distance_to_start': DistanceToStartCalculator,
     'distance_to_end': DistanceToEndCalculator,
     'time': TimeCalculator,
-    'path': PathDistanceCalculator
+    'path': PathDistanceCalculator,
+    'fastest': FastestCalculator,
+    'fastest_average': FastestAverageCalculator,
+    'fastest_average_path': FastestAveragePathCalculator
   }
 
   def __init__(self, args, simulator=None):
