@@ -21,6 +21,14 @@ class ArgumentConstants(object):
 
   MODELS = ['genetic']
   GAMES = ['flappybird', 'racing']
+  FITNESS_MODES = [
+      'distance_to_start',
+      'distance_to_end',
+      'time',
+      'path',
+      'fastest',
+      'fastest_average',
+      'fastest_average_path']
 
 
 class TFMappings(object):
@@ -246,6 +254,8 @@ def genetic_settings(argument=None):
   if argument is None:
     argument = ArgumentValidator()
   argument.register_parameter_with_options('game', ArgumentConstants.GAMES)
+  argument.register_parameter_with_options(
+      'fitness_mode', ArgumentConstants.FITNESS_MODES)
   argument.register_parameter('num_top_networks')
   argument.register_parameter('num_top_networks')
   argument.register_parameter('network_input_shape')
