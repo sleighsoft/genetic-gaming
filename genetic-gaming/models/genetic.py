@@ -1,6 +1,8 @@
-import tensorflow as tf
 import random
 import msgpackrpc
+import time
+import tensorflow as tf
+import uuid
 
 
 class Network(object):
@@ -56,7 +58,9 @@ class EvolutionSimulator(object):
                mutation_rate,
                evolve_bias,
                evolve_kernel,
-               scope):
+               scope,
+               save_path,
+               seed=None):
     assert num_networks > 1
     assert num_top_networks > 1
     self.num_top_networks = num_top_networks
@@ -69,7 +73,15 @@ class EvolutionSimulator(object):
         num_networks, input_shape, network_shape, scope)
     self.session = tf.Session()
     self.session.run(tf.global_variables_initializer())
-    self.writer = tf.summary.FileWriter('./tmp/', self.session.graph)
+    self.save_path = save_path
+    self.writer = tf.summary.FileWriter(self.save_path, self.session.graph)
+    self.saver = tf.train.Saver(save_relative_paths=True)
+    if seed is None:
+      seed = uuid.uuid4().int
+    else:
+      seed = int(seed)
+    tf.set_random_seed(seed)
+    print('Tensorflow seed: {}'.format(seed))
 
   def start_rpc_server(self, host, port):
     self.server = msgpackrpc.Server(self)
@@ -100,10 +112,12 @@ class EvolutionSimulator(object):
     return self.networks[index](self.session, input).tolist()
 
   def evolve(self, fitnesses):
+    start_time = time.time()
     for fitness, network in zip(fitnesses, self.networks):
       network.fitness = fitness
     evolution = self.evolve_networks()
     self.session.run(evolution)
+    print('Evolution took {} seconds!'.format(time.time() - start_time))
     return True
 
   def reset(self):
@@ -117,6 +131,14 @@ class EvolutionSimulator(object):
 
   def _reinitialize_all(self):
     self.session.run([n.reinitialize_network() for n in self.networks])
+
+  def save_networks(self):
+    print('Saving networks')
+    self.saver.save(self.session, self.save_path)
+
+  def restore_networks(self):
+    print('Restoring networks')
+    self.saver.restore(self.session, self.save_path)
 
   @staticmethod
   def create_networks(num_networks, input_shape, network_shape, base_scope):

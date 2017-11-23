@@ -14,7 +14,8 @@ import pprint
 from pygame.locals import *
 from PIL import Image
 import numpy as np
-import binascii
+import uuid
+
 
 PI_05 = math.pi * 0.5
 PI_03 = math.pi * 0.3
@@ -24,14 +25,14 @@ PI_01 = math.pi * 0.1
 class MapGenerator(object):
   def __init__(self, min_width, max_width, min_length, max_length, game_height, game_width, max_angle, min_angle=0,
                start_point=None, start_angle=45, start_width=300, seed=None, max_tries=10):
-    seed = seed or os.urandom(10)
+    seed = seed or uuid.uuid4().int
 
     if isinstance(seed, str):
-      seed = binascii.unhexlify(seed)
+      seed = int(seed)
 
     self.random = random.Random(seed)
 
-    print('Using Seed: "' + binascii.hexlify(seed).decode('utf-8') + '"')
+    print('Map seed: {}'.format(seed))
     self._min_width = min_width
     self._max_width = max_width
     self._max_angle = max_angle
@@ -287,12 +288,6 @@ class Car(object):
       # Determine points of impact of sensor rays
       impacts = []
       space = self.car_body.space
-      # for wall in walls:
-      #   query = wall.segment_query(sensor[0], sensor[1],
-      #                              shape_filter=pymunk.ShapeFilter(mask=0x1))
-      #   if query.shape is not None:
-      #     point_of_impact = query.point
-      #     impacts.append(point_of_impact)
       query = space.segment_query_first(
           sensor[0], sensor[1],
           radius=0, shape_filter=pymunk.ShapeFilter(mask=0x1))
@@ -370,6 +365,8 @@ class Game(object):
     self.NUM_CARS = args['num_networks']
     self.SEND_PIXELS = args['send_pixels']
     self.SIMULATOR = simulator
+    if args['restore_networks']:
+      self.SIMULATOR.restore_networks()
 
     # RPC proxy to machine learning agent
     self.client = msgpackrpc.Client(
@@ -676,6 +673,7 @@ class Game(object):
           else:
             print('Evolving')
             self.SIMULATOR.evolve(fitnesses)
+            self.SIMULATOR.save_networks()
 
       # Draw centers
 

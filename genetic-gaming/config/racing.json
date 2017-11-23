@@ -36,5 +36,8 @@
 	"evolve_bias": true,
 	"evolve_kernel": false,
 	"scope": "network",
-	"send_pixels": false
+	"send_pixels": false,
+	"save_path": "./tmp/",
+	"tf_seed": null,
+	"map_seed": null
 }
