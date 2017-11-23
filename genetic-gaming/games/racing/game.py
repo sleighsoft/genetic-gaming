@@ -132,6 +132,65 @@ class MapGenerator(object):
     return found, centers
 
 
+class FitnessCalculator(object):
+  def __init__(self, game):
+    self._game = game
+
+  def __call__(self, car):
+    raise NotImplementedError()
+
+
+class DistanceToStartCalculator(FitnessCalculator):
+  def __call__(self, car):
+    return (car_body.position - self._game.centers[0]).length,
+
+
+class DistanceToEndCalculator(FitnessCalculator):
+  def __call__(self, car):
+    return -(car.car_body.position - self._game.centers[-1]).length,
+
+
+class TimeCalculator(FitnessCalculator):
+  def __call__(self, car):
+    return time.time() - self._game.start_time
+
+
+class PathDistanceCalculator(FitnessCalculator):
+  def __init__(self, game):
+    super().__init__(game)
+    self._centers = np.asarray([[c.x, c.y] for c in game.centers])
+    self._distances = self.calculate_distances()
+
+  def calculate_distances(self):
+    results = [0]
+    distance = 0
+    last = self._game.centers[0]
+
+    for center in self._game.centers[1:]:
+      distance += (last - center).length
+      results.append(distance)
+      last = center
+
+    return results
+
+  def find_next_centers(self, pos, amount=2):
+    dist = np.sum((self._centers - (pos.x, pos.y))**2, axis=1)
+    return np.argsort(dist)[:amount]
+
+  def __call__(self, car):
+    next_centers = self.find_next_centers(car.car_body.position)
+    found_d = self._distances[next_centers[0]]
+    alternative_d = self._distances[next_centers[1]]
+
+    last = next_centers[0]
+
+    if alternative_d < found_d:
+      last = next_centers[1]
+      found_d = alternative_d
+
+    return (car.car_body.position-self._game.centers[last]).length + found_d
+
+
 class Car(object):
 
   def __init__(self, shape, position, rotation, rotation_speed, base_velocity,
@@ -288,6 +347,13 @@ class Car(object):
 
 
 class Game(object):
+  FITNESS_CALCULATORS = {
+    'distance_to_start': DistanceToStartCalculator,
+    'distance_to_end': DistanceToEndCalculator,
+    'time': TimeCalculator,
+    'path': PathDistanceCalculator
+  }
+
   def __init__(self, args, simulator=None):
     # Manual Control
     self.manual = args['manual'] if 'manual' in args else False
@@ -346,6 +412,7 @@ class Game(object):
 
     self.init_cars(x_start=X_START, y_start=Y_START_MEAN)
     self.init_walls(x_start=X_START-10, y_start=Y_START_MEAN)
+    self.init_fitness(self.FITNESS_MODE)
 
     # Dynamic
     self.reset()
@@ -464,12 +531,10 @@ class Game(object):
       self.car_velocity_timer.update({car: self.start_time})
 
   def calculate_current_fitness(self, car):
-    calculators = {
-      'distance_to_start': lambda: (car.car_body.position - self.centers[0]).length,
-      'distance_to_end': lambda: -(car.car_body.position - self.centers[-1]).length,
-      'time': lambda: time.time() - self.start_time
-    }
-    return calculators.get(self.FITNESS_MODE)()
+    return self._fitness_calc(car)
+
+  def init_fitness(self, mode):
+    self._fitness_calc = self.FITNESS_CALCULATORS[mode](self)
 
   def build_features(self):
     features = []
