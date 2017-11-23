@@ -27,9 +27,6 @@ class MapGenerator(object):
                start_point=None, start_angle=45, start_width=300, seed=None, max_tries=10):
     seed = seed or uuid.uuid4().int
 
-    if isinstance(seed, str):
-      seed = int(seed)
-
     self.random = random.Random(seed)
 
     print('Map seed: {}'.format(seed))
@@ -400,7 +397,8 @@ class Game(object):
     # Game
     self.STEPPING = args['stepping']
     self.MAP_GENERATOR = args.get('map_generator', 'random')
-    self.MAP_SEED = args.get('map_seed', None)
+    self.GAME_SEED = args.get('game_seed', None)
+    np.random.seed(self.GAME_SEED)
     self.FITNESS_MODE = args.get('fitness_mode', 'distance_to_start')
     self.SCREEN_RESIZE_SHAPE = None
     if 'screen_resize_shape' in args:
@@ -486,7 +484,7 @@ class Game(object):
       min_length=100, max_length=200,
       game_height=self.SCREEN_HEIGHT, game_width=self.SCREEN_WIDTH,
       start_point=(x_start, y_start), start_angle=0, start_width=100,
-      seed=self.MAP_SEED
+      seed=self.GAME_SEED
     )
     wall_layout, centers = gen.generate()
     self.centers = centers
@@ -662,7 +660,6 @@ class Game(object):
       if pressed_key[pygame.K_UP]:
         self.cars[0].trigger_acceleration()
 
-  @profile
   def run(self):
     clock = pygame.time.Clock()
     pygame.font.init()

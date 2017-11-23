@@ -3,6 +3,7 @@ import msgpackrpc
 import time
 import tensorflow as tf
 import uuid
+import os
 
 
 class Network(object):
@@ -75,6 +76,7 @@ class EvolutionSimulator(object):
     self.session = tf.Session()
     self.session.run(tf.global_variables_initializer())
     self.save_path = save_path
+    self.checkpoint_path = os.path.join(self.save_path, 'checkpoint')
     self.save_model_steps = save_model_steps
     self.current_step = 0
     self.writer = tf.summary.FileWriter(self.save_path, self.session.graph)
@@ -122,8 +124,9 @@ class EvolutionSimulator(object):
     self.session.run(evolution)
     print('Evolution took {} seconds!'.format(time.time() - start_time))
     self.current_step += 1
-    if self.current_step % self.save_model_steps == 0:
-      self.save_networks()
+    if self.save_model_steps > 0:
+      if self.current_step % self.save_model_steps == 0:
+        self.save_networks()
     return True
 
   def reset(self):
@@ -142,14 +145,16 @@ class EvolutionSimulator(object):
   def save_networks(self):
     print('Saving networks')
     start_time = time.time()
-    self.saver.save(self.session, self.save_path)
+    self.saver.save(self.session, self.checkpoint_path, self.current_step,
+                    write_meta_graph=False)
     print('Saving took {} seconds'.format(time.time() - start_time))
 
   def restore_networks(self):
-    if tf.train.latest_checkpoint(self.save_path):
+    latest_checkpoint = tf.train.latest_checkpoint(self.save_path)
+    if latest_checkpoint:
       print('Restoring networks')
       start_time = time.time()
-      self.saver.restore(self.session, self.save_path)
+      self.saver.restore(self.session, latest_checkpoint)
       print('Restoring took {} seconds'.format(time.time() - start_time))
 
   @staticmethod
