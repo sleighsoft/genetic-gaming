@@ -60,6 +60,24 @@ class Argument(object):
   UNSET = '==UNSET=='
 
   def __init__(self, name, dtype, description=None, **kwargs):
+    """Creates an argument used to validate input data.
+
+    Args:
+      name: The name of the argument.
+      dtype: The data type of the argument.
+      description: (Optional) A description of the argument.
+      disable_to_argparse: (Optional) If set, this turns add_to_argparse into a
+        no-op for this argument.
+
+    Exclusive Args:
+      default: A default value of the argument.
+      options: A list of possible argument values.
+      function: A function taking the argument value, processing it and
+        returning a new argument value.
+
+    NOTE: The unspecified exclusive args will be set to `Argument.UNSET` to
+    allow them to be discerned from `None` values.
+    """
     if kwargs.get('default') is not None:
       assert not (kwargs.get('options') or kwargs.get('function'))
     elif kwargs.get('options') is not None:
@@ -105,6 +123,7 @@ class Argument(object):
     return self._function
 
   def validate(self, value):
+    """Validates the given value on this argument."""
     if value is not None and type(value) is not self.dtype:
       raise ArgumentValidationException(
           '{} has to be of type {} but is {}'.format(
@@ -122,6 +141,7 @@ class Argument(object):
     return value
 
   def add_to_argparse(self, argument_parser):
+    """Adds this argument to the given `ArgumentParser` instance."""
     if not self.disable_to_argparse:
       action = 'store'
       choices = None
@@ -162,6 +182,21 @@ class ArgumentValidator(object):
     self.arguments = {}
 
   def register_parameter(self, name, dtype, description=None, **kwargs):
+    """Registers a parameter for validation.
+
+    Args:
+      name: The name of the argument.
+      dtype: The data type of the argument.
+      description: (Optional) A description of the argument.
+      disable_to_argparse: (Optional) If set, this turns add_to_argparse into a
+        no-op for this argument.
+
+    Exclusive Args:
+      default: A default value of the argument.
+      options: A list of possible argument values.
+      function: A function taking the argument value, processing it and
+        returning a new argument value.
+    """
     assert name not in self.arguments, \
         '{} already registered!'.format(name)
     argument = Argument(name, dtype, description, **kwargs)
@@ -174,10 +209,11 @@ class ArgumentValidator(object):
       args: A dictionary with argument name (key, value) pairs.
 
     Returns:
-      A new dictionary with validated arguments.
+      A new dictionary with validated arguments and extra arguments that were
+      not included in this validator.
 
     NOTE: This method runs `sys.exit` in case of missing required parameters
-    and prints all configured parameters.
+    and prints all registered parameters.
     """
     new_args = {}
     for arg, value in args.items():
@@ -225,6 +261,16 @@ class ArgumentValidator(object):
       print('\t{} -> {}'.format(p, default))
 
   def add_to_argparse(self, argument_parser=None):
+    """Adds all registered arguments to an instance of `ArgumentParser`. This
+    does not add parameters with `disable_to_argparse` set to `True`.
+
+    Args:
+      argument_parser: (Optional) The argument parser to add the arguments to.
+        If none is specified will create a new argument parser.
+
+    Returns:
+      An `ArgumentParser`.
+    """
     if argument_parser is None:
       argument_parser = argparse.ArgumentParser()
     for argument in self.arguments.values():
