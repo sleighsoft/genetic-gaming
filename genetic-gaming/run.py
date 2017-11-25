@@ -28,7 +28,8 @@ class ArgumentConstants(object):
       'path',
       'fastest',
       'fastest_average',
-      'fastest_average_path']
+      'fastest_average_path'
+  ]
 
 
 class TFMappings(object):
@@ -49,6 +50,103 @@ class TFMappings(object):
   }
 
 
+class ArgumentValidationException(Exception):
+  def __init__(self, *args, **kwargs):
+    super().__init__(self, *args, **kwargs)
+
+
+class Argument(object):
+
+  UNSET = '==UNSET=='
+
+  def __init__(self, name, dtype, description=None, **kwargs):
+    if kwargs.get('default') is not None:
+      assert not (kwargs.get('options') or kwargs.get('function'))
+    elif kwargs.get('options') is not None:
+      assert not (kwargs.get('default') or kwargs.get('function'))
+    elif kwargs.get('function') is not None:
+      assert callable(kwargs.get('function'))
+      assert not (kwargs.get('default') or kwargs.get('options'))
+
+    self._name = name
+    self._dtype = dtype
+    self._description = description
+    self._default = kwargs.get('default', Argument.UNSET)
+    self._options = kwargs.get('options', Argument.UNSET)
+    self._function = kwargs.get('function', Argument.UNSET)
+    self.disable_to_argparse = kwargs.get('disable_to_argparse', False)
+
+  @property
+  def required(self):
+    return self.default is Argument.UNSET
+
+  @property
+  def name(self):
+    return self._name
+
+  @property
+  def dtype(self):
+    return self._dtype
+
+  @property
+  def description(self):
+    return self._description
+
+  @property
+  def default(self):
+    return self._default
+
+  @property
+  def options(self):
+    return self._options
+
+  @property
+  def function(self):
+    return self._function
+
+  def validate(self, value):
+    if value is not None and type(value) is not self.dtype:
+      raise ArgumentValidationException(
+          '{} has to be of type {} but is {}'.format(
+              value, type(value), self.dtype))
+    if self.default is not Argument.UNSET:
+      if value is None:
+        value = self.default
+    if self.options is not Argument.UNSET:
+      if value not in self.options:
+        raise ArgumentValidationException(
+            '{} not in list of possible options {}'.format(
+                value, self.options))
+    if self.function is not Argument.UNSET:
+      value = self.function(value)
+    return value
+
+  def add_to_argparse(self, argument_parser):
+    if not self.disable_to_argparse:
+      action = 'store'
+      choices = None
+      kwargs = {'type': self.dtype}
+      kwargs.update({'default': self.default})
+      if self.dtype == bool:
+        action = 'store_false' if self.default else 'store_true'
+        kwargs.update({'action': action})
+        # Remove type, default in case of store action
+        kwargs.pop('type', None)
+        kwargs.pop('default', None)
+      if self.dtype == list:
+        action = 'append'
+        kwargs.update({'action': action})
+      if self.options is not Argument.UNSET:
+        choices = self.options
+        kwargs.update({'choices': choices})
+      argument_parser.add_argument(
+          '-' + self.name,
+          help=self.description,
+          **kwargs
+      )
+    return argument_parser
+
+
 class ArgumentValidator(object):
 
   def __init__(self):
@@ -61,78 +159,13 @@ class ArgumentValidator(object):
     self.required_parameter_names = set()
     self.optional_parameter_names = set()
 
-  def register_parameter(self, name):
-    """Registers a parameter in the list of REQUIRED parameters.
+    self.arguments = {}
 
-    Args:
-      name: Paramater name.
-
-    This is a no_op if `name` is already reqistered.
-    """
-    if name not in self.registered_parameter_names:
-      self.registered_parameter_names.update([name])
-      self.required_parameter_names.update([name])
-      self.registered_parameters.update([name])
-    else:
-      print('`{}` already registered!'.format(name))
-
-  def register_parameter_with_default(self, name, default):
-    """Registers a parameter in the list of OPTIONAL parameters with a default
-    value as fallback. Picks the default if the argument value is `None`.
-
-    Args:
-      name: Paramater name.
-      default: A default value.
-
-    This is a no_op if `name` is already reqistered.
-    """
-    if name not in self.registered_parameter_names:
-      self.registered_parameter_names.update([name])
-      self.optional_parameter_names.update([name])
-      self.registered_parameters_with_default.update({name: default})
-    else:
-      print('`{}` already registered!'.format(name))
-
-  def register_parameter_with_function(self, name, fn):
-    """Registers a parameter in the list of REQUIRED parameters with a
-    function that takes the argument value as input and returns a new value
-    for it e.g. `fn(args[name]) -> new_value`.
-
-    Args:
-      name: Paramater name.
-      fn: A callable which takes the argument value as input
-        and returns a new value.
-
-    This is a no_op if `name` is already reqistered.
-    """
-    if name not in self.registered_parameter_names:
-      assert callable(fn)
-      self.registered_parameter_names.update([name])
-      self.required_parameter_names.update([name])
-      self.registered_parameters_with_fn.update({name: fn})
-    else:
-      print('`{}` already registered!'.format(name))
-
-  def register_parameter_with_options(self, name, options):
-    """Registers a parameter in the list of REQUIRED parameters with a list of
-    `options` to check the argument value against.
-
-    Args:
-      name: Paramater name.
-      options: A list of allowed argument values.
-
-    This is a no_op if `name` is already reqistered.
-    """
-    if name not in self.registered_parameter_names:
-      self.registered_parameter_names.update([name])
-      self.required_parameter_names.update([name])
-      self.registered_parameters_with_options.update({name: options})
-    else:
-      print('`{}` already registered!'.format(name))
-
-  def to_argparser(self):
-    parser = argparse.ArgumentParser()
-    # TODO(julian)
+  def register_parameter(self, name, dtype, description=None, **kwargs):
+    assert name not in self.arguments, \
+        '{} already registered!'.format(name)
+    argument = Argument(name, dtype, description, **kwargs)
+    self.arguments.update({name: argument})
 
   def validate(self, args):
     """Validates `args` with all reqistered parameters.
@@ -148,42 +181,27 @@ class ArgumentValidator(object):
     """
     new_args = {}
     for arg, value in args.items():
-      if arg in self.registered_parameters_with_default:
-        if value is None:
-          value = self.registered_parameters_with_default[arg]
-        new_args.update({arg: value})
-      elif arg in self.registered_parameters_with_options:
-        options = self.registered_parameters_with_options[arg]
-        if value in options:
-          new_args.update({arg: value})
-        else:
-          self.print_value_not_in_options(arg, value, options)
+      if arg in self.arguments:
+        # Registered parameters
+        argument = self.arguments[arg]
+        try:
+          value = argument.validate(value)
+        except ArgumentValidationException as exc:
+          print('Failed to validate `{}`: {}'.format(arg, exc))
           self.print_registered_parameters_and_exit()
-      elif arg in self.registered_parameters_with_fn:
-        value = self.registered_parameters_with_fn[arg](value)
         new_args.update({arg: value})
-      elif arg in self.registered_parameters:
-        if value is None:
-          self.print_missing_parameter(arg)
-          self.print_registered_parameters_and_exit()
-        else:
-          new_args.update({arg: value})
       else:
-        print('Extra parameter detected: {} -> {}'.format(arg, value))
+        # Extra unchecked parameters
         new_args.update({arg: value})
 
-    for arg in self.registered_parameters_with_default:
-      if arg not in new_args:
-        new_args.update({arg: self.registered_parameters_with_default[arg]})
-    for arg in self.required_parameter_names:
-      if arg not in new_args:
-        self.print_missing_parameter(arg)
+    for name, argument in self.arguments.items():
+      if name not in new_args and argument.required:
+        self.print_missing_parameter(name)
         self.print_registered_parameters_and_exit()
+      if name not in new_args and argument.default is not Argument.UNSET:
+        new_args.update({name: argument.default})
 
     return new_args
-
-  def print_value_not_in_options(self, arg, value, options):
-    print('`{}` parameter value `{}` not in `{}`!'.format(arg, value, options))
 
   def print_missing_parameter(self, arg):
     print('`{}` parameter is missing!'.format(arg))
@@ -205,6 +223,13 @@ class ArgumentValidator(object):
     print('Optional parameter (name -> default):')
     for p, default in self.registered_parameters_with_default.items():
       print('\t{} -> {}'.format(p, default))
+
+  def add_to_argparse(self, argument_parser=None):
+    if argument_parser is None:
+      argument_parser = argparse.ArgumentParser()
+    for argument in self.arguments.values():
+      argument_parser = argument.add_to_argparse(argument_parser)
+    return argument_parser
 
   @staticmethod
   def lookup_key_if_exists(dictionary, key, lookup, default=None):
@@ -249,39 +274,107 @@ class GeneticValidator(object):
     return network_shape_arg
 
 
-def genetic_settings(argument=None):
+def get_genetic_validator(argument=None):
   """Creates an `ArgumentValidator` for genetic models."""
   if argument is None:
     argument = ArgumentValidator()
-  argument.register_parameter_with_options('game', ArgumentConstants.GAMES)
-  argument.register_parameter_with_options(
-      'fitness_mode', ArgumentConstants.FITNESS_MODES)
-  argument.register_parameter('num_top_networks')
-  argument.register_parameter('num_top_networks')
-  argument.register_parameter('network_input_shape')
-  argument.register_parameter('mutation_rate')
-  argument.register_parameter('evolve_bias')
-  argument.register_parameter('evolve_kernel')
-  argument.register_parameter_with_default('host', 'localhost')
-  argument.register_parameter_with_default('port', 4004)
-  argument.register_parameter_with_default('send_pixels', False)
-  argument.register_parameter_with_default('stepping', False)
-  argument.register_parameter_with_default('screen_resize_shape', None)
-  argument.register_parameter_with_default('save_path', './tmp')
-  argument.register_parameter_with_default('stepping', False)
-  argument.register_parameter_with_default('tf_seed', None)
-  argument.register_parameter_with_default('map_seed', None)
-  argument.register_parameter_with_default('tf_save_model_steps', 10)
-  argument.register_parameter_with_function(
-      'network_shape', GeneticValidator.validate_network_shape)
+  argument.register_parameter(
+      'game',
+      str,
+      'Game to play',
+      options=ArgumentConstants.GAMES)
+  argument.register_parameter(
+      'fitness_mode',
+      str,
+      'Fitness function to rank networks with',
+      options=ArgumentConstants.FITNESS_MODES)
+  argument.register_parameter(
+      'num_top_networks',
+      int,
+      'Number of best networks to select from current generation')
+  argument.register_parameter(
+      'network_input_shape',
+      int,
+      'Number of inputs of the network')
+  argument.register_parameter(
+      'mutation_rate',
+      float,
+      'Regulates the rate of mutation')
+  argument.register_parameter(
+      'evolve_bias',
+      bool,
+      'If set, includes the networks biases in the genetic algorithm',
+      default=False)
+  argument.register_parameter(
+      'evolve_kernel',
+      bool,
+      'If set, includes the networks kernels in the genetic algorithm',
+      default=False)
+  argument.register_parameter(
+      'host',
+      str,
+      'The host the genetic simulator runs on',
+      default='localhost')
+  argument.register_parameter(
+      'port',
+      int,
+      'The port the genetic simulator runs on',
+      default=4004)
+  argument.register_parameter(
+      'send_pixels',
+      bool,
+      'If set, send pixels instead of features to the genetic simulator',
+      default=False)
+  argument.register_parameter(
+      'stepping',
+      bool,
+      'If set, run one game player after another instead of all '
+      'simulataneously',
+      default=False)
+  argument.register_parameter(
+      'screen_resize_shape',
+      tuple,
+      'The resolution the game screen should be resized to. Helps to reduce '
+      'network input size',
+      default=None)
+  argument.register_parameter(
+      'save_path',
+      str,
+      'Directory where the model and training information will be saved to',
+      default='./tmp')
+  argument.register_parameter(
+      'tf_seed',
+      int,
+      'A seed for the tensorflow random number generator',
+      default=None)
+  argument.register_parameter(
+      'game_seed',
+      int,
+      'A seed for the game\'s random number generator',
+      default=None)
+  argument.register_parameter(
+      'tf_save_model_steps',
+      int,
+      'The interval (number of evolutions) to save the models progress in',
+      default=10)
+  argument.register_parameter(
+      'network_shape',
+      list,
+      'A list of dictionaries specifying the network shape',
+      function=GeneticValidator.validate_network_shape,
+      disable_to_argparse=True)
   return argument
 
 
-def general_settings(argument=None):
+def get_general_validator(argument=None):
   """Creates an `ArgumentValidator` for general run settings."""
   if argument is None:
     argument = ArgumentValidator()
-  argument.register_parameter_with_options('model', ArgumentConstants.MODELS)
+  argument.register_parameter(
+      'model',
+      str,
+      'The neural network learning approach',
+      options=ArgumentConstants.MODELS)
   return argument
 
 
@@ -292,7 +385,9 @@ def load_and_merge_args(args, parser):
   if hasattr(args, 'config'):
     with open(args.config) as config_file:
       merged_args = json.load(config_file)
-      merged_args.update(args.__dict__)
+      for key, value in args.__dict__.items():
+        if value is not Argument.UNSET:
+          merged_args.update({key: value})
   return merged_args
 
 
@@ -335,7 +430,7 @@ def _run_genetic(args):
 
 
 if __name__ == "__main__":
-  parser = argparse.ArgumentParser()
+  parser = argparse.ArgumentParser(add_help=False)
   parser.add_argument(
       '-config',
       help='Config file name to load run parameters from. If specified, all '
@@ -359,14 +454,26 @@ if __name__ == "__main__":
       help='Will set tensorflow logging to debug.',
       action='store_true'
   )
+  parser.add_argument(
+      '-h', '--help',
+      action='store_true',
+      default=argparse.SUPPRESS,
+      help='Shows the help message.'
+  )
+  general_argument_validator = get_general_validator()
+  parser = general_argument_validator.add_to_argparse(parser)
   args = parser.parse_args()
   args = load_and_merge_args(args, parser)
 
-  general_arguments = general_settings()
-  validated_args = general_arguments.validate(args)
+  validated_args = general_argument_validator.validate(args)
   if validated_args['model'] == 'genetic':
-    genetic_arguments = genetic_settings()
-    validated_args = genetic_arguments.validate(validated_args)
+    genetic_argument_validator = get_genetic_validator()
+    parser = genetic_argument_validator.add_to_argparse(parser)
+    if args.get('help'):
+      parser.print_help()
+      sys.exit()
+    validated_args = genetic_argument_validator.validate(validated_args)
+
   print('Running with the following parameters:')
   pprint.pprint(validated_args)
   if not validated_args['tf_debug']:

@@ -398,7 +398,7 @@ class Game(object):
     self.STEPPING = args['stepping']
     self.MAP_GENERATOR = args.get('map_generator', 'random')
     self.GAME_SEED = args.get('game_seed', None)
-    np.random.seed(self.GAME_SEED)
+    np.random.seed(self.GAME_SEED // 2**96)
     self.FITNESS_MODE = args.get('fitness_mode', 'distance_to_start')
     self.SCREEN_RESIZE_SHAPE = None
     if 'screen_resize_shape' in args:
