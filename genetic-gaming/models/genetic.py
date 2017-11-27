@@ -124,6 +124,7 @@ class EvolutionSimulator(object):
     self.session.run(evolution)
     print('Evolution took {} seconds!'.format(time.time() - start_time))
     self.current_step += 1
+    print("Step {}".format(self.current_step))
     if self.save_model_steps > 0:
       if self.current_step % self.save_model_steps == 0:
         self.save_networks()

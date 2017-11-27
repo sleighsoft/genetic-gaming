@@ -39,6 +39,6 @@
 	"send_pixels": false,
 	"save_path": "./tmp/",
 	"tf_seed": 148406467005396158076837740143378710009,
-	"game_seed": 311412663999223973622061156761349355421,
+	"game_seed": 5,
 	"tf_save_model_steps": 10
 }
