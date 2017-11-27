@@ -141,12 +141,12 @@ class FitnessCalculator(object):
 
 class DistanceToStartCalculator(FitnessCalculator):
   def __call__(self, car):
-    return (car.car_body.position - self._game.centers[0]).length,
+    return (car.car_body.position - self._game.centers[0]).length
 
 
 class DistanceToEndCalculator(FitnessCalculator):
   def __call__(self, car):
-    return -(car.car_body.position - self._game.centers[-1]).length,
+    return -(car.car_body.position - self._game.centers[-1]).length
 
 
 class TimeCalculator(FitnessCalculator):
