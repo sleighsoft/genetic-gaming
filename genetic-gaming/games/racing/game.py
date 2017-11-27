@@ -14,6 +14,7 @@ import pprint
 from pygame.locals import *
 from PIL import Image
 import numpy as np
+from numpy.linalg import norm
 import uuid
 
 
@@ -163,6 +164,20 @@ class FastestAverageCalculator(FitnessCalculator):
     return sum(car.velocities)/len(car.velocities)
 
 
+class AverageDistanceToPathCalculator(FitnessCalculator):
+  def __init__(self, game):
+    super().__init__(game)
+    self.tracker = game.tracker
+
+  def __call__(self, car):
+    return -(sum(self.tracker.distances[car])/len(self.tracker.distances[car]))
+
+
+def find_closest(points, pos, amount=2):
+  dist = np.sum((points - (pos.x, pos.y))**2, axis=1)
+  return tuple(np.argsort(dist)[:amount])
+
+
 class PathDistanceCalculator(FitnessCalculator):
   def __init__(self, game):
     super().__init__(game)
@@ -181,22 +196,15 @@ class PathDistanceCalculator(FitnessCalculator):
 
     return results
 
-  def find_next_centers(self, pos, amount=2):
-    dist = np.sum((self._centers - (pos.x, pos.y))**2, axis=1)
-    return np.argsort(dist)[:amount]
-
   def __call__(self, car):
-    next_centers = self.find_next_centers(car.car_body.position)
-    found_d = self._distances[next_centers[0]]
-    alternative_d = self._distances[next_centers[1]]
+    last, next = find_closest(self._centers, car.car_body.position)
 
-    last = next_centers[0]
+    if last > next:
+      last = next
 
-    if alternative_d < found_d:
-      last = next_centers[1]
-      found_d = alternative_d
+    dist = self._distances[last]
 
-    return (car.car_body.position-self._game.centers[last]).length + found_d
+    return (car.car_body.position-self._game.centers[last]).length + dist
 
 
 class FastestAveragePathCalculator(FitnessCalculator):
@@ -355,6 +363,7 @@ class Car(object):
     self.car_body.velocity = self.velocity * driving_direction
     self.velocities.append(self.car_body.velocity.get_length())
 
+
   @staticmethod
   def get_rotated_point(x_1, y_1, x_2, y_2, radians):
     """Rotate x_2, y_2 around x_1, y_1 by angle."""
@@ -367,6 +376,31 @@ class Car(object):
     return int(new_x), int(new_y)
 
 
+class DistanceTracker(object):
+  def __init__(self, centers, cars, pause_calls=0):
+    self.distances = {}
+    self.cars = cars
+    self.init_pause_calls = pause_calls
+    self.pause_counter = pause_calls
+    for car in cars:
+      self.distances[car] = []
+
+    self._centers = np.asarray([[c.x, c.y] for c in centers])
+
+  def calc_distance(self, car):
+    last, next = find_closest(self._centers, car.car_body.position)
+    last = self._centers[last]
+    next = self._centers[next]
+    return norm(np.cross(next - last, last - car.car_body.position)) / norm(next - last)
+
+  def calculate_distances(self):
+    self.pause_counter -= 1
+    if self.pause_counter <= 0:
+      for car in self.cars:
+        self.distances[car].append(self.calc_distance(car))
+      self.pause_counter = self.init_pause_calls
+
+
 class Game(object):
   FITNESS_CALCULATORS = {
     'distance_to_start': DistanceToStartCalculator,
@@ -375,7 +409,8 @@ class Game(object):
     'path': PathDistanceCalculator,
     'fastest': FastestCalculator,
     'fastest_average': FastestAverageCalculator,
-    'fastest_average_path': FastestAveragePathCalculator
+    'fastest_average_path': FastestAveragePathCalculator,
+    'average_path_distance': AverageDistanceToPathCalculator
   }
 
   def __init__(self, args, simulator=None):
@@ -439,6 +474,9 @@ class Game(object):
 
     self.init_cars(x_start=X_START, y_start=Y_START_MEAN)
     self.init_walls(x_start=X_START-10, y_start=Y_START_MEAN)
+    self.init_tracker()
+
+    # Init fitness last because calculator might depend on cars/wall/tracker
     self.init_fitness(self.FITNESS_MODE)
 
     # Dynamic
@@ -467,6 +505,9 @@ class Game(object):
                 num_sensors=2)
       self.cars.append(car)
       car.add_to_space(self.space)
+
+  def init_tracker(self):
+    self.tracker = DistanceTracker(self.centers, self.cars, 5)
 
   def init_walls(self, x_start, y_start):
     generators = {
@@ -613,6 +654,7 @@ class Game(object):
         car.move()
         self.check_for_collision(car)
         self.check_for_car_not_moving(car)
+        self.tracker.calculate_distances()
 
   def kill_car(self, car):
     car.is_dead = True

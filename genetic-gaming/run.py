@@ -28,7 +28,8 @@ class ArgumentConstants(object):
       'path',
       'fastest',
       'fastest_average',
-      'fastest_average_path'
+      'fastest_average_path',
+      'average_path_distance'
   ]
 
 
