@@ -380,6 +380,12 @@ def get_genetic_validator(argument=None):
       'simulataneously',
       default=False)
   argument.register_parameter(
+      'single_process',
+      bool,
+      'If set, run game and network in the same process'
+      'simulataneously',
+      default=False)
+  argument.register_parameter(
       'screen_resize_shape',
       tuple,
       'The resolution the game screen should be resized to. Helps to reduce '
@@ -485,12 +491,6 @@ if __name__ == "__main__":
       'other CLI arguments will be discarded.',
       type=str,
       required=True
-  )
-  parser.add_argument(
-      '-single_process',
-      help='Will run the game with the network in the same process. No'
-      ' subprocess will be started to host the game.',
-      action='store_true'
   )
   parser.add_argument(
       '-restore_networks',
