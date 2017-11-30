@@ -164,7 +164,7 @@ class FastestAverageCalculator(FitnessCalculator):
     return sum(car.velocities)/len(car.velocities)
 
 
-class AverageDistanceToPathCalculator(FitnessCalculator):
+class CloseToPathCalculator(FitnessCalculator):
   def __init__(self, game):
     super().__init__(game)
     self.tracker = game.tracker
@@ -215,6 +215,17 @@ class FastestAveragePathCalculator(FitnessCalculator):
   def __call__(self, car):
     WEIGHT_SPEED, WEIGHT_PATH = 1, 10
     return WEIGHT_SPEED * sum(car.velocities)/len(car.velocities) + WEIGHT_PATH * self._path_distance_calculator(car)
+
+
+class CloseToPathWithDistanceCalculator(FitnessCalculator):
+  def __init__(self, game):
+    super().__init__(game)
+    self._path_distance_calculator = PathDistanceCalculator(game)
+    self._close_to_calc = CloseToPathCalculator(game)
+
+  def __call__(self, car):
+    WEIGHT_EXACT, WEIGHT_PATH = 5, 1
+    return self._close_to_calc(car) * WEIGHT_EXACT + self._path_distance_calculator(car) * WEIGHT_PATH
 
 
 class Car(object):
@@ -410,7 +421,8 @@ class Game(object):
     'fastest': FastestCalculator,
     'fastest_average': FastestAverageCalculator,
     'fastest_average_path': FastestAveragePathCalculator,
-    'average_path_distance': AverageDistanceToPathCalculator
+    'close_to_path': CloseToPathCalculator,
+    'close_to_path_with_distance': CloseToPathWithDistanceCalculator
   }
 
   def __init__(self, args, simulator=None):
@@ -433,7 +445,8 @@ class Game(object):
     self.STEPPING = args['stepping']
     self.MAP_GENERATOR = args.get('map_generator', 'random')
     self.GAME_SEED = args.get('game_seed', None)
-    np.random.seed(self.GAME_SEED // 2**96)
+    if self.GAME_SEED is not None:
+      np.random.seed(self.GAME_SEED // 2**96)
     self.FITNESS_MODE = args.get('fitness_mode', 'distance_to_start')
     self.SCREEN_RESIZE_SHAPE = None
     if 'screen_resize_shape' in args:
@@ -456,6 +469,7 @@ class Game(object):
     # Pygame
     self.screen = pygame.display.set_mode(
         (self.SCREEN_WIDTH, self.SCREEN_HEIGHT))
+    pygame.display.set_caption('GG Racing (' + self.FITNESS_MODE + ')')
     asset_path = os.path.dirname(os.path.realpath(__file__))
     asset_path = os.path.join(asset_path, args['assets'])
 

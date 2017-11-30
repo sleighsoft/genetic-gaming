@@ -4,7 +4,7 @@
 	"host": "localhost",
 	"map_generator": "random",
 	"map_seed": null,
-	"fitness_mode": "fastest_average_path",
+	"fitness_mode": "distance_to_start",
 	"port": 4004,
 	"num_networks": 10,
 	"num_top_networks": 4,
@@ -37,7 +37,7 @@
 	"evolve_kernel": false,
 	"scope": "network",
 	"send_pixels": false,
-	"save_path": "./tmp_fap",
+	"save_path": "./tmp_dts",
 	"tf_seed": 148406467005396158076837740143378710009,
 	"game_seed": 75146054200126082299131172022650629599,
 	"tf_save_model_steps": 10
