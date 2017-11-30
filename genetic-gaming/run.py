@@ -389,7 +389,7 @@ def get_genetic_validator(argument=None):
   argument.register_parameter(
       'headless',
       bool,
-      'If set, includes the networks biases in the genetic algorithm',
+      'If set, run the game with GUI',
       default=False)
   argument.register_parameter(
       'evolve_kernel',
@@ -422,11 +422,6 @@ def get_genetic_validator(argument=None):
       bool,
       'If set, run game and network in the same process'
       'simulataneously',
-      default=False)
-  argument.register_parameter(
-      'headless',
-      bool,
-      'If set, run the training without visual output.',
       default=False)
   argument.register_parameter(
       'screen_resize_shape',
