@@ -386,6 +386,11 @@ def get_genetic_validator(argument=None):
       'simulataneously',
       default=False)
   argument.register_parameter(
+      'headless',
+      bool,
+      'If set, run the training without visual output.',
+      default=False)
+  argument.register_parameter(
       'screen_resize_shape',
       tuple,
       'The resolution the game screen should be resized to. Helps to reduce '
@@ -464,6 +469,8 @@ def _run_genetic(args):
       args['save_path'],
       args['tf_save_model_steps'],
       seed=args['tf_seed'])
+  if args['headless']:
+    os.environ["SDL_VIDEODRIVER"] = "dummy"
   if args['single_process']:
     import importlib
     module = importlib.import_module('games.{}.game'.format(args['game']))
