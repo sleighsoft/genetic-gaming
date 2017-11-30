@@ -59,8 +59,6 @@ class ArgumentValidationException(Exception):
 
 class Argument(object):
 
-  UNSET = '==UNSET=='
-
   def __init__(self, name, dtype, description=None, **kwargs):
     """Creates an argument used to validate input data.
 
@@ -77,7 +75,7 @@ class Argument(object):
       function: A function taking the argument value, processing it and
         returning a new argument value.
 
-    NOTE: The unspecified exclusive args will be set to `Argument.UNSET` to
+    NOTE: The unspecified exclusive args will be set to `argparse.SUPPRESS` to
     allow them to be discerned from `None` values.
     """
     if kwargs.get('default') is not None:
@@ -91,14 +89,23 @@ class Argument(object):
     self._name = name
     self._dtype = dtype
     self._description = description
-    self._default = kwargs.get('default', Argument.UNSET)
-    self._options = kwargs.get('options', Argument.UNSET)
-    self._function = kwargs.get('function', Argument.UNSET)
+
+    self._default = kwargs.get('default', argparse.SUPPRESS)
+    self._options = kwargs.get('options', argparse.SUPPRESS)
+    self._function = kwargs.get('function', argparse.SUPPRESS)
     self.disable_to_argparse = kwargs.get('disable_to_argparse', False)
 
   @property
   def required(self):
-    return self.default is Argument.UNSET
+    return self._default is argparse.SUPPRESS
+
+  @property
+  def has_options(self):
+      return self._options is not argparse.SUPPRESS
+
+  @property
+  def has_function(self):
+      return self._function is not argparse.SUPPRESS
 
   @property
   def name(self):
@@ -130,15 +137,15 @@ class Argument(object):
       raise ArgumentValidationException(
           '{} has to be of type {} but is {}'.format(
               value, type(value), self.dtype))
-    if self.default is not Argument.UNSET:
+    if self.default is not argparse.SUPPRESS:
       if value is None:
         value = self.default
-    if self.options is not Argument.UNSET:
+    if self.options is not argparse.SUPPRESS:
       if value not in self.options:
         raise ArgumentValidationException(
             '{} not in list of possible options {}'.format(
                 value, self.options))
-    if self.function is not Argument.UNSET:
+    if self.function is not argparse.SUPPRESS:
       value = self.function(value)
     return value
 
@@ -148,17 +155,16 @@ class Argument(object):
       action = 'store'
       choices = None
       kwargs = {'type': self.dtype}
-      kwargs.update({'default': self.default})
+      kwargs.update({'default': argparse.SUPPRESS})
       if self.dtype == bool:
-        action = 'store_false' if self.default else 'store_true'
-        kwargs.update({'action': action})
+        kwargs.update({'action': 'store_const'})
         # Remove type, default in case of store action
         kwargs.pop('type', None)
-        kwargs.pop('default', None)
+        kwargs.update({'const': self.default})
       if self.dtype == list:
         action = 'append'
         kwargs.update({'action': action})
-      if self.options is not Argument.UNSET:
+      if self.options is not argparse.SUPPRESS:
         choices = self.options
         kwargs.update({'choices': choices})
       argument_parser.add_argument(
@@ -169,18 +175,32 @@ class Argument(object):
     return argument_parser
 
 
+class FlagAction(argparse.Action):
+
+    def __init__(self,
+                 option_strings,
+                 dest,
+                 const,
+                 default=None,
+                 required=False,
+                 help=None,
+                 metavar=None):
+        super().__init__(
+            option_strings=option_strings,
+            dest=dest,
+            nargs=0,
+            const=argparse.SUPPRESS,
+            default=default,
+            required=required,
+            help=help)
+
+    def __call__(self, parser, namespace, values, option_string=None):
+        setattr(namespace, self.dest, self.const)
+
+
 class ArgumentValidator(object):
 
   def __init__(self):
-    self.registered_parameters = set()
-    self.registered_parameters_with_default = {}
-    self.registered_parameters_with_fn = {}
-    self.registered_parameters_with_options = {}
-    # Set containing all parameters registered.
-    self.registered_parameter_names = set()
-    self.required_parameter_names = set()
-    self.optional_parameter_names = set()
-
     self.arguments = {}
 
   def register_parameter(self, name, dtype, description=None, **kwargs):
@@ -236,7 +256,7 @@ class ArgumentValidator(object):
       if name not in new_args and argument.required:
         self.print_missing_parameter(name)
         self.print_registered_parameters_and_exit()
-      if name not in new_args and argument.default is not Argument.UNSET:
+      if name not in new_args and argument.default is not argparse.SUPPRESS:
         new_args.update({name: argument.default})
 
     return new_args
@@ -249,18 +269,31 @@ class ArgumentValidator(object):
     sys.exit()
 
   def print_registered_parameters(self):
+    required = []
+    required_with_options = []
+    required_with_function = []
+    required_with_default = []
+    for arg in self.arguments.values():
+      if arg.required:
+        required.append(arg)
+      elif arg.has_options:
+        required_with_options.append(arg)
+      elif arg.has_function:
+        required_with_function.append(arg)
+      else:
+        required_with_default.append(arg)
     print('Required parameter (name):')
-    for p in self.registered_parameters:
-      print('\t{}'.format(p))
+    for arg in required:
+      print('\t{}'.format(arg))
     print('Required parameter (name -> options):')
-    for p, options in self.registered_parameters_with_options.items():
-      print('\t{} -> {}'.format(p, options))
+    for arg in required_with_options:
+      print('\t{} -> {}'.format(arg.name, arg.options))
     print('Required parameter (name -> function):')
-    for p, fn in self.registered_parameters_with_fn.items():
-      print('\t{} -> {}'.format(p, fn.__name__))
+    for arg in required_with_function:
+      print('\t{} -> {}'.format(arg.name, arg.function.__name__))
     print('Optional parameter (name -> default):')
-    for p, default in self.registered_parameters_with_default.items():
-      print('\t{} -> {}'.format(p, default))
+    for arg in required_with_default:
+      print('\t{} -> {}'.format(arg.name, arg.default))
 
   def add_to_argparse(self, argument_parser=None):
     """Adds all registered arguments to an instance of `ArgumentParser`. This
@@ -354,6 +387,11 @@ def get_genetic_validator(argument=None):
       'If set, includes the networks biases in the genetic algorithm',
       default=False)
   argument.register_parameter(
+      'headless',
+      bool,
+      'If set, includes the networks biases in the genetic algorithm',
+      default=False)
+  argument.register_parameter(
       'evolve_kernel',
       bool,
       'If set, includes the networks kernels in the genetic algorithm',
@@ -440,7 +478,7 @@ def load_and_merge_args(args, parser):
     with open(args.config) as config_file:
       merged_args = json.load(config_file)
       for key, value in args.__dict__.items():
-        if value is not Argument.UNSET:
+        if value is not argparse.SUPPRESS:
           merged_args.update({key: value})
   return merged_args
 
@@ -503,24 +541,28 @@ if __name__ == "__main__":
       action='store_true'
   )
   parser.add_argument(
-      '-h', '--help',
+      '--help',
       action='store_true',
       default=argparse.SUPPRESS,
       help='Shows the help message.'
   )
   general_argument_validator = get_general_validator()
   parser = general_argument_validator.add_to_argparse(parser)
-  args = parser.parse_args()
+  config_arg_position = sys.argv.index('-config')
+  config_arg = sys.argv[config_arg_position:config_arg_position + 2]
+  args = parser.parse_known_args()[0]
   args = load_and_merge_args(args, parser)
-
   validated_args = general_argument_validator.validate(args)
+
   if validated_args['model'] == 'genetic':
     genetic_argument_validator = get_genetic_validator()
     parser = genetic_argument_validator.add_to_argparse(parser)
+    args = parser.parse_args()
+    args = load_and_merge_args(args, parser)
     if args.get('help'):
       parser.print_help()
       sys.exit()
-    validated_args = genetic_argument_validator.validate(validated_args)
+    validated_args = genetic_argument_validator.validate(args)
 
   print('Running with the following parameters:')
   pprint.pprint(validated_args)
