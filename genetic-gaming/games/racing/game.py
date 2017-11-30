@@ -46,7 +46,8 @@ class MapGenerator(object):
     self.points = []
 
   def get_next_endings(self, left_start, right_start, last_angle):
-    center = Vec2d((left_start.x + right_start.x)/2, (left_start.y+right_start.y)/2)
+    center = Vec2d((left_start.x + right_start.x) / 2,
+                   (left_start.y + right_start.y) / 2)
     length = self.random.uniform(self._min_length, self._max_length)
     angle = self.random.uniform(self._min_angle, self._max_angle)
     angle = self.random.choice([last_angle + angle, last_angle - angle])
@@ -89,20 +90,20 @@ class MapGenerator(object):
       self._start_point = Vec2d(30, 30)
 
     left_end = Vec2d.unit()
-    left_end.angle = self._start_angle-PI_05
+    left_end.angle = self._start_angle - PI_05
     left_end.length = self._start_width / 2
 
     right_end = Vec2d.unit()
-    right_end.angle = self._start_angle+PI_05
+    right_end.angle = self._start_angle + PI_05
     right_end.length = self._start_width / 2
 
-    return self.zero_border_vector(self._start_point+left_end), \
-           self.zero_border_vector(self._start_point+right_end)
+    return self.zero_border_vector(self._start_point + left_end), \
+        self.zero_border_vector(self._start_point + right_end)
 
   def get_wall(self, start_point, end_point):
     return {
-      'start': start_point,
-      'end': end_point
+        'start': start_point,
+        'end': end_point
     }
 
   def generate(self):
@@ -113,7 +114,8 @@ class MapGenerator(object):
     found = [self.get_wall(last_left, last_right)]
     centers = [Vec2d(self._start_point)]
     while tries_left > 0:
-      next_left, next_right, angle, center = self.get_next_endings(last_left, last_right, last_angle)
+      next_left, next_right, angle, center = self.get_next_endings(
+          last_left, last_right, last_angle)
 
       if self.is_valid(next_left) and self.is_valid(next_right):
         found.append(self.get_wall(last_left, next_left))
@@ -161,7 +163,7 @@ class FastestCalculator(FitnessCalculator):
 
 class FastestAverageCalculator(FitnessCalculator):
   def __call__(self, car):
-    return sum(car.velocities)/len(car.velocities)
+    return sum(car.velocities) / len(car.velocities)
 
 
 class AverageDistanceToPathCalculator(FitnessCalculator):
@@ -170,7 +172,7 @@ class AverageDistanceToPathCalculator(FitnessCalculator):
     self.tracker = game.tracker
 
   def __call__(self, car):
-    return -(sum(self.tracker.distances[car])/len(self.tracker.distances[car]))
+    return -(sum(self.tracker.distances[car]) / len(self.tracker.distances[car]))
 
 
 def find_closest(points, pos, amount=2):
@@ -204,7 +206,7 @@ class PathDistanceCalculator(FitnessCalculator):
 
     dist = self._distances[last]
 
-    return (car.car_body.position-self._game.centers[last]).length + dist
+    return (car.car_body.position - self._game.centers[last]).length + dist
 
 
 class FastestAveragePathCalculator(FitnessCalculator):
@@ -214,7 +216,7 @@ class FastestAveragePathCalculator(FitnessCalculator):
 
   def __call__(self, car):
     WEIGHT_SPEED, WEIGHT_PATH = 1, 10
-    return WEIGHT_SPEED * sum(car.velocities)/len(car.velocities) + WEIGHT_PATH * self._path_distance_calculator(car)
+    return WEIGHT_SPEED * sum(car.velocities) / len(car.velocities) + WEIGHT_PATH * self._path_distance_calculator(car)
 
 
 class Car(object):
@@ -363,7 +365,6 @@ class Car(object):
     self.car_body.velocity = self.velocity * driving_direction
     self.velocities.append(self.car_body.velocity.get_length())
 
-
   @staticmethod
   def get_rotated_point(x_1, y_1, x_2, y_2, radians):
     """Rotate x_2, y_2 around x_1, y_1 by angle."""
@@ -403,14 +404,14 @@ class DistanceTracker(object):
 
 class Game(object):
   FITNESS_CALCULATORS = {
-    'distance_to_start': DistanceToStartCalculator,
-    'distance_to_end': DistanceToEndCalculator,
-    'time': TimeCalculator,
-    'path': PathDistanceCalculator,
-    'fastest': FastestCalculator,
-    'fastest_average': FastestAverageCalculator,
-    'fastest_average_path': FastestAveragePathCalculator,
-    'average_path_distance': AverageDistanceToPathCalculator
+      'distance_to_start': DistanceToStartCalculator,
+      'distance_to_end': DistanceToEndCalculator,
+      'time': TimeCalculator,
+      'path': PathDistanceCalculator,
+      'fastest': FastestCalculator,
+      'fastest_average': FastestAverageCalculator,
+      'fastest_average_path': FastestAveragePathCalculator,
+      'average_path_distance': AverageDistanceToPathCalculator
   }
 
   def __init__(self, args, simulator=None):
@@ -473,7 +474,7 @@ class Game(object):
     self.centers = []
 
     self.init_cars(x_start=X_START, y_start=Y_START_MEAN)
-    self.init_walls(x_start=X_START-10, y_start=Y_START_MEAN)
+    self.init_walls(x_start=X_START - 10, y_start=Y_START_MEAN)
     self.init_tracker()
 
     # Init fitness last because calculator might depend on cars/wall/tracker
@@ -483,14 +484,24 @@ class Game(object):
     self.reset()
     # If -stepping
     self.step = 0
+    self.round = 0
 
   def init_cars(self, x_start, y_start):
     self.cars = []
     Y_RANDOM_RANGE = 20  # 45 - 85 is valid for this map
+    car_colors = []
     for _ in range(self.NUM_CARS):
       start_x = x_start
       start_y = (np.random.randint(-Y_RANDOM_RANGE,
                                    Y_RANDOM_RANGE) + y_start)
+
+      while True:
+        car_color = (np.random.randint(0, 256),
+                     np.random.randint(0, 256),
+                     np.random.randint(0, 256))
+        if car_color not in car_colors:
+          break
+
       car = Car(shape=(15, 10),
                 position=(start_x, start_y),
                 rotation=0.0,
@@ -500,7 +511,7 @@ class Game(object):
                 deceleration=0.8,
                 acceleration_time=20,
                 max_velocity=100,
-                color=(0, 0, 0),
+                color=car_color,
                 sensor_range=100,
                 num_sensors=2)
       self.cars.append(car)
@@ -511,8 +522,8 @@ class Game(object):
 
   def init_walls(self, x_start, y_start):
     generators = {
-      'random': self.init_walls_randomly,
-      'map': self.init_walls_with_map
+        'random': self.init_walls_randomly,
+        'map': self.init_walls_with_map
     }
     generators.get(self.MAP_GENERATOR)(x_start, y_start)
 
@@ -520,12 +531,12 @@ class Game(object):
     self.walls = []
 
     gen = MapGenerator(
-      min_width=40, max_width=70,
-      min_angle=PI_01, max_angle=PI_03,
-      min_length=100, max_length=200,
-      game_height=self.SCREEN_HEIGHT, game_width=self.SCREEN_WIDTH,
-      start_point=(x_start, y_start), start_angle=0, start_width=100,
-      seed=self.GAME_SEED
+        min_width=40, max_width=70,
+        min_angle=PI_01, max_angle=PI_03,
+        min_length=100, max_length=200,
+        game_height=self.SCREEN_HEIGHT, game_width=self.SCREEN_WIDTH,
+        start_point=(x_start, y_start), start_angle=0, start_width=100,
+        seed=self.GAME_SEED
     )
     wall_layout, centers = gen.generate()
     self.centers = centers
@@ -555,33 +566,36 @@ class Game(object):
 
     self.walls = []
     level = [
-      "WWWWWWWWWWWWWWWWWWWW",
-      "W                  W",
-      "W                  W",
-      "WWWWWWWWWWWWWWW    W",
-      "WEEEW         W    W",
-      "W   W         W    W",
-      "W   W     WWWWW    W",
-      "W   W     W        W",
-      "W   WWW   W        W",
-      "W     W   W        W",
-      "W     W   WWWWW    W",
-      "W     W  WW        W",
-      "W     WWWW         W",
-      "W                  W",
-      "WWWWWWWWWWWWWWWWWWWW",
+        "WWWWWWWWWWWWWWWWWWWW",
+        "W                  W",
+        "W                  W",
+        "WWWWWWWWWWWWWWW    W",
+        "WEEEW         W    W",
+        "W   W         W    W",
+        "W   W     WWWWW    W",
+        "W   W     W        W",
+        "W   WWW   W        W",
+        "W     W   W        W",
+        "W     W   WWWWW    W",
+        "W     W  WW        W",
+        "W     WWWW         W",
+        "W                  W",
+        "WWWWWWWWWWWWWWWWWWWW",
     ]
     # Parse the level string above. W = wall, E = exit
     x = y = 0
     x_step = self.SCREEN_WIDTH / len(level[0])
     y_step = self.SCREEN_HEIGHT / len(level)
-    X_OFFSET, Y_OFFSET = 13, 17  # to center the map correctly in the window (WTF I know ...)
+    # to center the map correctly in the window (WTF I know ...)
+    X_OFFSET, Y_OFFSET = 13, 17
     for row in level:
       for col in row:
         if col == "W":
-          self.walls.append(get_wall(x + X_OFFSET, y + Y_OFFSET, x_step, y_step))
+          self.walls.append(
+              get_wall(x + X_OFFSET, y + Y_OFFSET, x_step, y_step))
         if col == "E":
-          self.walls.append(get_wall(x + X_OFFSET, y + Y_OFFSET, x_step, y_step, color=(255, 0, 0)))
+          self.walls.append(get_wall(x + X_OFFSET, y + Y_OFFSET,
+                                     x_step, y_step, color=(255, 0, 0)))
         x += x_step
       y += y_step
       x = 0
@@ -590,7 +604,6 @@ class Game(object):
 
   def reset(self):
     """Reset game state (all cars)."""
-    self.round = 0
     self.start_time = time.time()
     self.car_velocity_timer = {}
     for car in self.cars:
@@ -702,10 +715,27 @@ class Game(object):
       if pressed_key[pygame.K_UP]:
         self.cars[0].trigger_acceleration()
 
+  def render_statistics(self):
+    font = pygame.font.SysFont("Arial", 15)
+    x_position = 640 - 70
+    self.screen.blit(
+        font.render(
+            str('Round: {}'.format(self.round)),
+            -1,
+            (0, 0, 0)),
+        (x_position, 20))
+    for i, car in enumerate(self.cars):
+      y_position = 40 + 20 * i
+      pygame.draw.rect(self.screen, car._color,
+                       pygame.Rect(x_position, y_position + 5, 15, 10))
+      text = 'dead' if car.is_dead else 'alive'
+      color = (183, 18, 43) if car.is_dead else (66, 244, 69)
+      self.screen.blit(font.render(text, -1, color),
+                       (x_position + 18, y_position))
+
   def run(self):
     clock = pygame.time.Clock()
     pygame.font.init()
-    font = pygame.font.SysFont("Arial", 50)
 
     while True:
       clock.tick(120)
@@ -723,11 +753,15 @@ class Game(object):
       self.trigger_movements()
       self.update_cars()
 
+      # Show statistics
+      self.render_statistics()
+
       # Reset Game & Update Networks, if all cars are dead
       if (all([car.is_dead for car in self.cars]) or
               time.time() - self.start_time > 40):
         fitnesses = [car.fitness for car in self.cars]
         self.reset()
+        self.round += 1
         print('Fitnesses:')
         pprint.pprint(fitnesses)
         # Evolution
@@ -740,9 +774,9 @@ class Game(object):
             self.SIMULATOR.evolve(fitnesses)
 
       # Draw centers
-
       for center in self.centers:
-        pygame.draw.circle(self.screen, 0x00ff00, (int(round(center.x)), int(round(center.y))), 5)
+        pygame.draw.circle(self.screen, 0x00ff00, (int(
+            round(center.x)), int(round(center.y))), 5)
 
       # Pymunk & Pygame calls
       self.space.debug_draw(self.draw_options)
