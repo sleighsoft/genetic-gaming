@@ -37,7 +37,7 @@
 	"evolve_kernel": false,
 	"scope": "network",
 	"send_pixels": false,
-	"save_path": "./tmp_fap",
+	"save_path": "./tmp",
 	"tf_seed": 148406467005396158076837740143378710009,
 	"game_seed": null,
 	"tf_save_model_steps": 10,
