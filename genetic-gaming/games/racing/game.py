@@ -748,11 +748,11 @@ class Game(object):
                        (x_position + 18, y_position))
 
   def run(self):
-    clock = pygame.time.Clock()
+    # clock = pygame.time.Clock()
     pygame.font.init()
 
     while True:
-      clock.tick(120)
+      # clock.tick(240)
 
       for event in pygame.event.get():
         if event.type == pygame.QUIT:

@@ -40,5 +40,6 @@
 	"save_path": "./tmp_closest",
 	"tf_seed": 148406467005396158076837740143378710009,
 	"game_seed": 75146054200126082299131172022650629599,
-	"tf_save_model_steps": 10
+	"tf_save_model_steps": 10,
+	"single_process": true
 }
