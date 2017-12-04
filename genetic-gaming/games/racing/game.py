@@ -283,6 +283,7 @@ class Game(object):
       self.car_velocity_timer[car] = time.time()
     elif time.time() - self.car_velocity_timer[car] > 3:
       self.kill_car(car)
+      car.fitness = -sys.maxsize
 
   def check_for_collision(self, car):
     """Checks is any sensor distance is below the threshold. If so, mark car as
