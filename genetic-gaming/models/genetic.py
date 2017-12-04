@@ -63,6 +63,23 @@ class EvolutionSimulator(object):
                save_path,
                save_model_steps,
                seed=None):
+    """Creates an EvolutionSimulator. It provides an easy interface for
+    running multiple networks in parallel and improving them through a
+    genetic approach.
+
+    Args:
+      input_shape: (int) Number of network input nodes.
+      network_shape: A list of network shapes.
+      num_networks: (int) Number of networks to create.
+      num_top_networks: (int) Number of best networks to keep when evolving.
+      mutation_rate: (float) Controls the
+      evolve_bias:
+      evolve_kernel:
+      scope:
+      save_path:
+      save_model_steps:
+    """
+
     assert num_networks > 1
     assert num_top_networks > 1
     self.num_top_networks = num_top_networks
@@ -89,12 +106,23 @@ class EvolutionSimulator(object):
     print('Tensorflow seed: {}'.format(seed))
 
   def start_rpc_server(self, host, port):
+    """Starts the simulator as an RPC server at `host:port`."""
     self.server = msgpackrpc.Server(self)
     self.server.listen(msgpackrpc.Address(host, port))
     print('Starting simulator server at {}:{}'.format(host, port))
     self.server.start()
 
   def predict(self, inputs, index=None):
+    """Predict outputs for inputs using the networks.
+
+    Args:
+      inputs: Features of shape `[networks, input_shape]`.
+      index: (optional) If set, only take features at `index`.
+
+    Returns:
+      Predicted outputs of shape `[networks, num_outputs]` if index is `None`
+      otherwise `[num_outputs]`.
+    """
     if index is not None:
       return self._predict_single(inputs, index)
     else:
@@ -234,11 +262,16 @@ class EvolutionSimulator(object):
       variables_crossover += crossover_network.trainable_kernel()
     assert len(variables_scope1) == len(variables_scope2)
     crossover_point = random.randint(0, len(variables_scope1) - 1)
+    for i in range(0, crossover_point):
+      crossover_ops1.append(
+        tf.assign(tf.assign(variables_crossover[i], variables_scope1[i])))
+      crossover_ops2.append(
+        tf.assign(tf.assign(variables_crossover[i], variables_scope2[i])))
     for i in range(crossover_point, len(variables_scope1)):
       crossover_ops1.append(
-          tf.assign(variables_crossover[i], variables_scope1[i]))
-      crossover_ops2.append(
           tf.assign(variables_crossover[i], variables_scope2[i]))
+      crossover_ops2.append(
+          tf.assign(variables_crossover[i], variables_scope1[i]))
     crossover_ops = self.choose_random(crossover_ops1, crossover_ops2)
     return crossover_ops
 
