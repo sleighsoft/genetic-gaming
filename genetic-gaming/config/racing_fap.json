@@ -39,7 +39,7 @@
 	"send_pixels": false,
 	"save_path": "./tmp_fap",
 	"tf_seed": 148406467005396158076837740143378710009,
-	"game_seed": 75146054200126082299131172022650629599,
+	"game_seed": 293687624403701469812932862804192145633,
 	"tf_save_model_steps": 10,
 	"single_process": true
 }
