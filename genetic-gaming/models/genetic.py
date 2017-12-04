@@ -261,11 +261,16 @@ class EvolutionSimulator(object):
       variables_crossover += crossover_network.trainable_kernel()
     assert len(variables_scope1) == len(variables_scope2)
     crossover_point = random.randint(0, len(variables_scope1) - 1)
+    for i in range(0, crossover_point):
+      crossover_ops1.append(
+        tf.assign(tf.assign(variables_crossover[i], variables_scope1[i])))
+      crossover_ops2.append(
+        tf.assign(tf.assign(variables_crossover[i], variables_scope2[i])))
     for i in range(crossover_point, len(variables_scope1)):
       crossover_ops1.append(
-          tf.assign(variables_crossover[i], variables_scope1[i]))
-      crossover_ops2.append(
           tf.assign(variables_crossover[i], variables_scope2[i]))
+      crossover_ops2.append(
+          tf.assign(variables_crossover[i], variables_scope1[i]))
     crossover_ops = self.choose_random(crossover_ops1, crossover_ops2)
     return crossover_ops
 
