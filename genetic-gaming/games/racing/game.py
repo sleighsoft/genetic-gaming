@@ -400,8 +400,9 @@ class Game(object):
             round(center.x + self.draw_options.offset.x)), int(round(center.y+self.draw_options.offset.y))), 5)
 
       # Pymunk & Pygame calls
-      self.space.debug_draw(self.draw_options)
-      pygame.display.update()
+      if os.environ.get("SDL_VIDEODRIVER") is None:
+        self.space.debug_draw(self.draw_options)
+        pygame.display.update()
       fps = 60
       dt = 1. / fps
       self.space.step(dt)

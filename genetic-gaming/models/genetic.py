@@ -419,7 +419,7 @@ class EvolutionSimulator(object):
 
   @staticmethod
   def _mutate(variable):
-    """Mutates a `Tensor`.
+    """Mutates a `Tensor`self.
 
     Args:
       variable: The variable to mutate.
