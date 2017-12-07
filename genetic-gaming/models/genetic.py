@@ -10,14 +10,15 @@ class Network(object):
 
   def __init__(self, input_shape, network_shape, scope):
     self.scope = scope
-    self.graph = self.build(input_shape, network_shape, scope)
+    self.graph = self.build(input_shape, network_shape)
     self.fitness = 0
 
   def __call__(self, session, x):
     return session.run(self.graph, feed_dict={self.input: x})
 
-  def build(self, input_shape, network_shape, scope):
-    with tf.variable_scope(scope):
+  def build(self, input_shape, network_shape):
+    with tf.variable_scope(self.scope) as scope:
+      self.scope = scope
       layer = tf.placeholder(tf.float32, shape=(None, input_shape),
                              name='input')
       self.input = layer
@@ -30,15 +31,15 @@ class Network(object):
 
   def trainable_variables(self):
     return [v for v in tf.trainable_variables() if
-            v.name.startswith(self.scope)]
+            v.name.startswith(self.scope.name + '/')]
 
   def trainable_kernel(self):
-    return [v for v in tf.trainable_variables() if 'kernel' in v.name and
-            v.name.startswith(self.scope)]
+    return [v for v in tf.trainable_variables(self.scope.name + '/')
+            if 'kernel' in v.name]
 
   def trainable_biases(self):
-    return [v for v in tf.trainable_variables() if 'bias' in v.name and
-            v.name.startswith(self.scope)]
+    return [v for v in tf.trainable_variables(self.scope.name + '/')
+            if 'bias' in v.name]
 
   def reset_fitness(self):
     self.fitness = 0
@@ -340,13 +341,13 @@ class EvolutionSimulator(object):
       bias_scope2 = network2.trainable_biases()
       bias_crossover = crossover_network.trainable_biases()
       assert len(bias_scope1) == len(bias_scope2), \
-          "Number of bias variables `{}` of network1 has to be same for " \
-          " bias variables `{}` in network2".format(
+          "Number of bias variables was {} for network1 and {} for network2 " \
+          "but has to be the same for both networks".format(
           len(bias_scope1), len(bias_scope2))
-      assert len(bias_crossover) == len(bias_scope2), \
-          "Number of bias variables `{}` of network1 and 2 has to be same " \
-          " for bias variables `{}` in crossover_network".format(
-          len(bias_scope1), len(bias_scope2))
+      assert len(bias_scope1) == len(bias_crossover), \
+          "Number of bias variables was {} for network1+2 and {} for " \
+          "crossover network but has to be the same for both networks".format(
+          len(bias_scope1), len(bias_crossover))
       crossover_point = random.randint(0, len(bias_scope1) - 1)
       for i in range(len(bias_crossover)):
         if i < crossover_point:
@@ -362,7 +363,7 @@ class EvolutionSimulator(object):
     if kernel:
       kernel_scope1 = network1.trainable_kernel()
       kernel_scope2 = network2.trainable_kernel()
-      kernel_crossover = crossover_network.trainable_biases()
+      kernel_crossover = crossover_network.trainable_kernel()
       assert len(kernel_scope1) == len(kernel_scope2), \
           "Number of kernel variables `{}` of network1 has to be same for " \
           " kernel variables `{}` in network2".format(

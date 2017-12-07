@@ -160,7 +160,7 @@ class Argument(object):
         kwargs.update({'action': 'store_const'})
         # Remove type, default in case of store action
         kwargs.pop('type', None)
-        kwargs.update({'const': self.default})
+        kwargs.update({'const': not self.default})
       if self.dtype == list:
         action = 'append'
         kwargs.update({'action': action})
@@ -369,6 +369,10 @@ def get_genetic_validator(argument=None):
       str,
       'Fitness function to rank networks with',
       options=ArgumentConstants.FITNESS_MODES)
+  argument.register_parameter(
+      'num_networks',
+      int,
+      'Number of networks to use')
   argument.register_parameter(
       'num_top_networks',
       int,

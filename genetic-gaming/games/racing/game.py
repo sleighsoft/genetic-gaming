@@ -342,9 +342,9 @@ class Game(object):
     # clock = pygame.time.Clock()
     pygame.font.init()
 
-    while True:
-      # clock.tick(240)
+    round_time = time.time()
 
+    while True:
       for event in pygame.event.get():
         if event.type == pygame.QUIT:
           sys.exit()
@@ -364,6 +364,9 @@ class Game(object):
       # Reset Game & Update Networks, if all cars are dead
       if (all([car.is_dead for car in self.cars]) or
               time.time() - self.start_time > 40):
+        print('====== Finished round {} in {} sec ======'.format(
+            self.round, time.time() - round_time))
+        round_time = time.time()
         fitnesses = [car.fitness for car in self.cars]
         self.reset()
         self.round += 1
