@@ -49,7 +49,7 @@ class Network(object):
 
   def reinitialize_network(self):
     variables = tf.get_collection(
-        tf.GraphKeys.GLOBAL_VARIABLES, scope=self.scope)
+        tf.GraphKeys.GLOBAL_VARIABLES, scope=self.scope.name + '/')
     init_op = tf.variables_initializer(variables)
     return init_op
 

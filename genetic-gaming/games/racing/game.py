@@ -65,7 +65,7 @@ class Game(object):
 
     # Pymunk
     pymunk.pygame_util.positive_y_is_up = False
-    self.space = pymunk.Space()
+    self.space = pymunk.Space(threaded=True)
     self.space.gravity = pymunk.Vec2d(0., 0.)
     self.draw_options = pymunk.pygame_util.DrawOptions(self.screen)
 
@@ -367,6 +367,10 @@ class Game(object):
         print('====== Finished round {} in {} sec ======'.format(
             self.round, time.time() - round_time))
         round_time = time.time()
+        # Calculate fitness of cars still alive
+        for car in self.cars:
+          if not car.is_dead:
+            self.kill_car(car)
         fitnesses = [car.fitness for car in self.cars]
         self.reset()
         self.round += 1
