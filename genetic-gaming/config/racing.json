@@ -32,6 +32,14 @@
 			"use_bias": true
 		}
 	],
+	"map_generator_conf": {
+        "in_width": 40,
+		"max_width": 70,
+        "min_angle": 0.31415,
+		"max_angle": 0.9424,
+        "min_length": 100,
+		"max_length": 200
+	},
 	"mutation_rate": 0.2,
 	"evolve_bias": true,
 	"evolve_kernel": false,

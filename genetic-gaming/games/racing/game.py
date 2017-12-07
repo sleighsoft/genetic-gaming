@@ -9,7 +9,7 @@ import pprint
 import pygame
 import pymunk
 import pymunk.pygame_util
-from . import constants, maps, fitness
+from . import maps, fitness
 from . import car as car_impl
 
 
@@ -55,6 +55,7 @@ class Game(object):
     self.JUMP_TIME = 17
     self.JUMP_SPEED = 10
     self.JUMP_SPEED_DECLINE = 1
+    self.MAP_GENERATOR_CONF = args.get('map_generator_conf', {})
 
     # Pygame
     self.screen = pygame.display.set_mode(
@@ -134,12 +135,9 @@ class Game(object):
     self.walls = []
 
     gen = maps.MapGenerator(
-        min_width=40, max_width=70,
-        min_angle=constants.PI_01, max_angle=constants.PI_03,
-        min_length=100, max_length=200,
         game_height=self.SCREEN_HEIGHT, game_width=self.SCREEN_WIDTH,
         start_point=(x_start, y_start), start_angle=0, start_width=100,
-        seed=self.GAME_SEED
+        seed=self.GAME_SEED, **self.MAP_GENERATOR_CONF
     )
     wall_layout, centers = gen.generate()
     self.centers = centers
