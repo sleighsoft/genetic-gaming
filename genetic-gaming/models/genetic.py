@@ -29,9 +29,12 @@ class Network(object):
                                 use_bias=s['use_bias'])
     return layer
 
+  @property
+  def name(self):
+      return self.scope if isinstance(self.scope, str) else self.scope.name
+
   def trainable_variables(self):
-    return [v for v in tf.trainable_variables() if
-            v.name.startswith(self.scope.name + '/')]
+    return tf.trainable_variables(self.scope.name + '/')
 
   def trainable_kernel(self):
     return [v for v in tf.trainable_variables(self.scope.name + '/')
@@ -365,13 +368,13 @@ class EvolutionSimulator(object):
       kernel_scope2 = network2.trainable_kernel()
       kernel_crossover = crossover_network.trainable_kernel()
       assert len(kernel_scope1) == len(kernel_scope2), \
-          "Number of kernel variables `{}` of network1 has to be same for " \
-          " kernel variables `{}` in network2".format(
+          "Number of kernel variables was {} for network1 and {} for " \
+          "network2 but has to be the same for both networks".format(
           len(kernel_scope1), len(kernel_scope2))
-      assert len(kernel_crossover) == len(kernel_scope2), \
-          "Number of kernel variables `{}` of network1 and 2 has to be same " \
-          " for kernel variables `{}` in crossover_network".format(
-          len(kernel_scope1), len(kernel_scope2))
+      assert len(kernel_scope1) == len(kernel_crossover), \
+          "Number of kernel variables was {} for network1+2 and {} for " \
+          "crossover network but has to be the same for both networks".format(
+          len(kernel_scope1), len(kernel_crossover))
       crossover_point = random.randint(0, len(kernel_scope1) - 1)
       for i in range(len(kernel_crossover)):
         if i < crossover_point:
@@ -385,7 +388,7 @@ class EvolutionSimulator(object):
           crossover_ops2.append(
               tf.assign(kernel_crossover[i], kernel_scope1[i]))
 
-    # Select either A|B or B|A
+    # Select either A|B or B|A where | indicates the crossover point
     crossover_ops = self.choose_random(crossover_ops1, crossover_ops2)
     return crossover_ops
 
@@ -409,11 +412,9 @@ class EvolutionSimulator(object):
     if bias:
       variables += network.trainable_biases()
     for v in variables:
-      mutation = tf.cond(
-          tf.random_uniform([]) < tf.constant(mutation_rate),
-          lambda: self._mutate(v),
-          lambda: v)
-      mutation_ops.append(tf.assign(v, mutation))
+      if random.random() < mutation_rate:
+        mutation = self._mutate(v)
+        mutation_ops.append(tf.assign(v, mutation))
     return mutation_ops
 
   @staticmethod

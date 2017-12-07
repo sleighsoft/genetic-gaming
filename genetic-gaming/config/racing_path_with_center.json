@@ -34,7 +34,7 @@
 	],
 	"mutation_rate": 0.2,
 	"evolve_bias": true,
-	"evolve_kernel": false,
+	"evolve_kernel": true,
 	"scope": "network",
 	"send_pixels": false,
 	"save_path": "./tmp_closest",
