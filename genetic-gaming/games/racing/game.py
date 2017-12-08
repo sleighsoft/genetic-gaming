@@ -66,7 +66,7 @@ class Game(object):
 
     # Pymunk
     pymunk.pygame_util.positive_y_is_up = False
-    self.space = pymunk.Space()
+    self.space = pymunk.Space(threaded=True)
     self.space.gravity = pymunk.Vec2d(0., 0.)
     self.draw_options = pymunk.pygame_util.DrawOptions(self.screen)
 
@@ -88,7 +88,7 @@ class Game(object):
     self.reset()
     # If -stepping
     self.step = 0
-    self.round = 0
+    self.round = 1
 
   def init_cars(self, x_start, y_start):
     self.cars = []
@@ -277,10 +277,12 @@ class Game(object):
 
   def check_for_car_not_moving(self, car):
     x_velocity, y_velocity = car.car_body.velocity
-    if x_velocity > 0 or y_velocity > 0:
+    if (x_velocity > sys.float_info.epsilon or
+            y_velocity > sys.float_info.epsilon):
       self.car_velocity_timer[car] = time.time()
     elif time.time() - self.car_velocity_timer[car] > 3:
       self.kill_car(car)
+      car.fitness = -sys.maxsize
 
   def check_for_collision(self, car):
     """Checks is any sensor distance is below the threshold. If so, mark car as
@@ -338,9 +340,9 @@ class Game(object):
     # clock = pygame.time.Clock()
     pygame.font.init()
 
-    while True:
-      # clock.tick(240)
+    round_time = time.time()
 
+    while True:
       for event in pygame.event.get():
         if event.type == pygame.QUIT:
           sys.exit()
@@ -360,6 +362,13 @@ class Game(object):
       # Reset Game & Update Networks, if all cars are dead
       if (all([car.is_dead for car in self.cars]) or
               time.time() - self.start_time > 40):
+        print('====== Finished round {} in {} sec ======'.format(
+            self.round, time.time() - round_time))
+        round_time = time.time()
+        # Calculate fitness of cars still alive
+        for car in self.cars:
+          if not car.is_dead:
+            self.kill_car(car)
         fitnesses = [car.fitness for car in self.cars]
         self.reset()
         self.round += 1
