@@ -38,6 +38,7 @@ class Game(object):
     if self.GAME_SEED is not None:
       np.random.seed(self.GAME_SEED // 2**96)
     self.FITNESS_MODE = args.get('fitness_mode', 'distance_to_start')
+    self.FITNESS_CONF = args.get('fitness_function_conf', {})
     self.SCREEN_RESIZE_SHAPE = None
     if 'screen_resize_shape' in args:
       self.SCREEN_RESIZE_SHAPE = args['screen_resize_shape']
@@ -216,7 +217,7 @@ class Game(object):
     return self._fitness_calc(car)
 
   def init_fitness(self, mode):
-    self._fitness_calc = fitness.FITNESS_CALCULATORS[mode](self)
+    self._fitness_calc = fitness.FITNESS_CALCULATORS[mode](self, **self.FITNESS_CONF)
 
   def build_features(self):
     features = []

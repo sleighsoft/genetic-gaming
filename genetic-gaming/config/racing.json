@@ -4,7 +4,7 @@
 	"host": "localhost",
 	"map_generator": "random",
 	"map_seed": null,
-	"fitness_mode": "fastest_average_path",
+	"fitness_mode": "mixed",
 	"port": 4004,
 	"num_networks": 10,
 	"num_top_networks": 4,
@@ -39,6 +39,12 @@
 		"max_angle": 0.9424,
         "min_length": 100,
 		"max_length": 200
+	},
+	"fitness_function_conf": {
+		"weight_a": 1,
+		"weight_b": 10,
+		"func_a": "path",
+		"func_b": "fastest_average"
 	},
 	"mutation_rate": 0.2,
 	"evolve_bias": true,

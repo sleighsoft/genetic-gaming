@@ -35,8 +35,9 @@ class DistanceTracker(object):
 
 
 class FitnessCalculator(object):
-  def __init__(self, game):
+  def __init__(self, game, **kwargs):
     self._game = game
+    self._conf = kwargs
 
   def __call__(self, car):
     raise NotImplementedError()
@@ -68,8 +69,8 @@ class FastestAverageCalculator(FitnessCalculator):
 
 
 class CloseToPathCalculator(FitnessCalculator):
-  def __init__(self, game):
-    super().__init__(game)
+  def __init__(self, game, **kwargs):
+    super().__init__(game, **kwargs)
     self.tracker = game.tracker
 
   def __call__(self, car):
@@ -78,8 +79,8 @@ class CloseToPathCalculator(FitnessCalculator):
 
 
 class PathDistanceCalculator(FitnessCalculator):
-  def __init__(self, game):
-    super().__init__(game)
+  def __init__(self, game, **kwargs):
+    super().__init__(game, **kwargs)
     self._centers = np.asarray([[c.x, c.y] for c in game.centers])
     self._distances = self.calculate_distances()
 
@@ -106,28 +107,14 @@ class PathDistanceCalculator(FitnessCalculator):
     return (car.car_body.position - self._game.centers[last]).length + dist
 
 
-class FastestAveragePathCalculator(FitnessCalculator):
-  def __init__(self, game):
-    super().__init__(game)
-    self._path_distance_calculator = PathDistanceCalculator(game)
+class MixedCalculator(FitnessCalculator):
+  def __init__(self, game, **kwargs):
+    super().__init__(game, **kwargs)
+    self._calc_a = FITNESS_CALCULATORS.get(self._conf['func_a'])(game, **kwargs)
+    self._calc_b = FITNESS_CALCULATORS.get(self._conf['func_b'])(game, **kwargs)
 
   def __call__(self, car):
-    WEIGHT_SPEED, WEIGHT_PATH = 1, 10
-    return (WEIGHT_SPEED * sum(car.velocities) /
-            len(car.velocities) + WEIGHT_PATH *
-            self._path_distance_calculator(car))
-
-
-class CloseToPathWithDistanceCalculator(FitnessCalculator):
-  def __init__(self, game):
-    super().__init__(game)
-    self._path_distance_calculator = PathDistanceCalculator(game)
-    self._close_to_calc = CloseToPathCalculator(game)
-
-  def __call__(self, car):
-    WEIGHT_EXACT, WEIGHT_PATH = 5, 1
-    return (self._close_to_calc(car) * WEIGHT_EXACT +
-            self._path_distance_calculator(car) * WEIGHT_PATH)
+    return (self._calc_a(car) * self._conf['weight_a']) + (self._calc_b(car) * self._conf['weight_b'])
 
 
 FITNESS_CALCULATORS = {
@@ -137,7 +124,6 @@ FITNESS_CALCULATORS = {
     'path': PathDistanceCalculator,
     'fastest': FastestCalculator,
     'fastest_average': FastestAverageCalculator,
-    'fastest_average_path': FastestAveragePathCalculator,
     'close_to_path': CloseToPathCalculator,
-    'close_to_path_with_distance': CloseToPathWithDistanceCalculator
+    'mixed': MixedCalculator
 }

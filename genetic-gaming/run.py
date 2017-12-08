@@ -28,9 +28,8 @@ class ArgumentConstants(object):
       'path',
       'fastest',
       'fastest_average',
-      'fastest_average_path',
-      'average_path_distance',
-      'close_to_path_with_distance'
+      'close_to_path',
+      'mixed'
   ]
 
 
@@ -371,6 +370,19 @@ class GeneticValidator(object):
 
       return map_conf_arg
 
+  @staticmethod
+  def validate_fitness_conf(fitness_conf):
+      fitness_conf['func_a'] = Argument('func_a', str, 'Fitness function A')\
+          .validate(fitness_conf['func_a'])
+      fitness_conf['func_b'] = Argument('func_b', str, 'Fitness function B')\
+          .validate(fitness_conf['func_b'])
+      fitness_conf['weight_a'] = Argument('weight_a', int, 'Weight for function A')\
+          .validate(fitness_conf['weight_a'])
+      fitness_conf['weight_b'] = Argument('weight_b', int, 'Weight for function B')\
+          .validate(fitness_conf['weight_b'])
+      return fitness_conf
+
+
 def get_genetic_validator(argument=None):
   """Creates an `ArgumentValidator` for genetic models."""
   if argument is None:
@@ -480,6 +492,13 @@ def get_genetic_validator(argument=None):
       dict,
       'A dictionary containing configuration options for the map generator',
       function=GeneticValidator.validate_map_gen_conf,
+      disable_to_argparse=True
+  )
+  argument.register_parameter(
+      'fitness_function_conf',
+      dict,
+      'A dictionary containing configuration options for the fitness function',
+      function=GeneticValidator.validate_fitness_conf,
       disable_to_argparse=True
   )
   return argument

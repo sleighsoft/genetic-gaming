@@ -4,7 +4,7 @@
 	"host": "localhost",
 	"map_generator": "random",
 	"map_seed": null,
-	"fitness_mode": "close_to_path_with_distance",
+	"fitness_mode": "mixed",
 	"port": 4004,
 	"num_networks": 10,
 	"num_top_networks": 4,
@@ -32,6 +32,20 @@
 			"use_bias": true
 		}
 	],
+	"map_generator_conf": {
+        "min_width": 40,
+		"max_width": 70,
+        "min_angle": 0.31415,
+		"max_angle": 0.9424,
+        "min_length": 100,
+		"max_length": 200
+	},
+	"fitness_function_conf": {
+		"weight_a": 5,
+		"weight_b": 1,
+		"func_a": "close_to_path",
+		"func_b": "path"
+	},
 	"mutation_rate": 0.2,
 	"evolve_bias": true,
 	"evolve_kernel": true,
