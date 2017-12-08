@@ -33,7 +33,7 @@
 		}
 	],
 	"map_generator_conf": {
-        "in_width": 40,
+        "min_width": 40,
 		"max_width": 70,
         "min_angle": 0.31415,
 		"max_angle": 0.9424,

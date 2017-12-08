@@ -354,6 +354,22 @@ class GeneticValidator(object):
         shape['use_bias'] = False
     return network_shape_arg
 
+  @staticmethod
+  def validate_map_gen_conf(map_conf_arg):
+      map_conf_arg['min_width'] = Argument('min_width', int, 'Minimum track width')\
+          .validate(map_conf_arg['min_width'])
+      map_conf_arg['max_width'] = Argument('max_width', int, 'Maximum track width')\
+          .validate(map_conf_arg['max_width'])
+      map_conf_arg['min_angle'] = Argument('min_angle', float, 'Minimum turn angle')\
+          .validate(map_conf_arg['min_angle'])
+      map_conf_arg['max_angle'] = Argument('max_angle', float, 'Maximum turn angle')\
+          .validate(map_conf_arg['max_angle'])
+      map_conf_arg['min_length'] = Argument('min_length', int, 'Minimum segment length')\
+          .validate(map_conf_arg['min_length'])
+      map_conf_arg['max_length'] = Argument('max_length', int, 'Maximum segment length')\
+          .validate(map_conf_arg['max_length'])
+
+      return map_conf_arg
 
 def get_genetic_validator(argument=None):
   """Creates an `ArgumentValidator` for genetic models."""
@@ -455,6 +471,13 @@ def get_genetic_validator(argument=None):
       'A list of dictionaries specifying the network shape',
       function=GeneticValidator.validate_network_shape,
       disable_to_argparse=True)
+  argument.register_parameter(
+      'map_generator_conf',
+      dict,
+      'A dictionary containing configuration options for the map generator',
+      function=GeneticValidator.validate_map_gen_conf,
+      disable_to_argparse=True
+  )
   return argument
 
 
