@@ -9,7 +9,8 @@ import pprint
 import pygame
 import pymunk
 import pymunk.pygame_util
-from . import maps, fitness
+from pymunk import Vec2d
+from . import maps, fitness, drawoptions
 from . import car as car_impl
 
 
@@ -46,16 +47,8 @@ class Game(object):
       args['assets'] = 'assets'
     self.SCREEN_WIDTH = 640
     self.SCREEN_HEIGHT = 480
-    self.GAP = 130
-    self.WALLX = 400
-    self.BIRD_X = 70
-    self.BIRD_HEIGHT = 50
-    self.BIRD_WIDTH = 50
-    self.GRAVITY = 5
-    self.GRAVITY_ACCELERATION = 0.2
-    self.JUMP_TIME = 17
-    self.JUMP_SPEED = 10
-    self.JUMP_SPEED_DECLINE = 1
+    self.GAME_WIDTH = 1280
+    self.GAME_HEIGHT = 960
     self.MAP_GENERATOR_CONF = args.get('map_generator_conf', {})
 
     # Pygame
@@ -69,7 +62,7 @@ class Game(object):
     pymunk.pygame_util.positive_y_is_up = False
     self.space = pymunk.Space(threaded=True)
     self.space.gravity = pymunk.Vec2d(0., 0.)
-    self.draw_options = pymunk.pygame_util.DrawOptions(self.screen)
+    self.draw_options = drawoptions.OffsetDrawOptions(self.screen)
 
     X_START = 50
     Y_START_MEAN = 65
@@ -86,6 +79,7 @@ class Game(object):
     self.init_fitness(self.FITNESS_MODE)
 
     # Dynamic
+    self._camera_car = None
     self.reset()
     # If -stepping
     self.step = 0
@@ -239,10 +233,22 @@ class Game(object):
         sys.exit()
     return movements
 
-  def update_track(self):
-    # TODO This may be required if our track is larger than the actual screen
-    # and we would have to move the camera.
-    pass
+  def select_new_camera_car(self):
+    furthest = None
+    furthest_dist = 0
+    for car in self.cars:
+      dist = (car.car_body.position - self.centers[0]).length
+      if dist > furthest_dist:
+        furthest = car
+        furthest_dist = dist
+
+    return furthest
+
+  def update_offset(self):
+    if self._camera_car is None or self._camera_car.is_dead:
+        self._camera_car = self.select_new_camera_car()
+
+    self.draw_options.offset = -self._camera_car.car_body.position + (pymunk.Vec2d(self.SCREEN_WIDTH, self.SCREEN_HEIGHT) * 0.5)
 
   def trigger_movements(self):
     """Triggers movements for all cars and allows manual keyboard control if
@@ -351,7 +357,7 @@ class Game(object):
       self.screen.fill((255, 255, 255))
 
       # Update Track
-      self.update_track()
+      self.update_offset()
 
       # Update Cars
       self.trigger_movements()
@@ -387,7 +393,7 @@ class Game(object):
       # Draw centers
       for center in self.centers:
         pygame.draw.circle(self.screen, 0x00ff00, (int(
-            round(center.x)), int(round(center.y))), 5)
+            round(center.x + self.draw_options.offset.x)), int(round(center.y+self.draw_options.offset.y))), 5)
 
       # Pymunk & Pygame calls
       self.space.debug_draw(self.draw_options)
