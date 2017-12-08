@@ -130,7 +130,7 @@ class Game(object):
     self.walls = []
 
     gen = maps.MapGenerator(
-        game_height=self.SCREEN_HEIGHT, game_width=self.SCREEN_WIDTH,
+        game_height=self.GAME_HEIGHT, game_width=self.GAME_WIDTH,
         start_point=(x_start, y_start), start_angle=0, start_width=100,
         seed=self.GAME_SEED, **self.MAP_GENERATOR_CONF
     )
