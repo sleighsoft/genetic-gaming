@@ -24,6 +24,7 @@ class Car(object):
     self._sensor_range = sensor_range
     self._num_sensors = num_sensors
     self._sensor_color = sensor_color
+    self._offset = Vec2d(0, 0)
 
     inertia = pymunk.moment_for_box(1, self._shape)
     self.car_body = pymunk.Body(1, inertia)
@@ -53,6 +54,9 @@ class Car(object):
     self.is_dead = False
     self.fitness = 0.0
     self.previous_position = self._position
+
+  def update_offset(self, offset):
+    self._offset = offset
 
   def add_to_space(self, space):
     """Adds both car_body and car_shape to the space if none has been set
@@ -91,7 +95,7 @@ class Car(object):
   def show_sensors(self, screen, points_of_impact):
     for i, sensor in enumerate(self.get_sensors()):
       end = sensor[1] if points_of_impact[i] is None else points_of_impact[i]
-      pygame.draw.line(screen, self._sensor_color, sensor[0], end)
+      pygame.draw.line(screen, self._sensor_color, sensor[0] + self._offset, end + self._offset)
 
   def get_sensor_distances(self, walls, screen=None):
     distances = []

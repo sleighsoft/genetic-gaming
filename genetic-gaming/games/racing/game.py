@@ -238,7 +238,7 @@ class Game(object):
     furthest_dist = 0
     for car in self.cars:
       dist = (car.car_body.position - self.centers[0]).length
-      if dist > furthest_dist:
+      if dist > furthest_dist and not car.is_dead:
         furthest = car
         furthest_dist = dist
 
@@ -246,9 +246,13 @@ class Game(object):
 
   def update_offset(self):
     if self._camera_car is None or self._camera_car.is_dead:
+        print('Searching new target car')
         self._camera_car = self.select_new_camera_car()
 
     self.draw_options.offset = -self._camera_car.car_body.position + (pymunk.Vec2d(self.SCREEN_WIDTH, self.SCREEN_HEIGHT) * 0.5)
+
+    for car in self.cars:
+        car.update_offset(self.draw_options.offset)
 
   def trigger_movements(self):
     """Triggers movements for all cars and allows manual keyboard control if
