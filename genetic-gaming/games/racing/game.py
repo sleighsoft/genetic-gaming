@@ -11,11 +11,32 @@ import pymunk
 import pymunk.pygame_util
 from . import constants, maps, fitness
 from . import car as car_impl
+from ..saver import load_saved_data, save_data, get_current_git_hash
 
 
 class Game(object):
 
   def __init__(self, args, simulator=None):
+    if args['restore_from'] is not None:
+        restore_dir = args['restore_from']
+        try:
+            saved_data = load_saved_data(restore_dir)
+            version, args = saved_data['version'], saved_data['args']
+            self.SIMULATOR.restore_networks()
+            current_hash = get_current_git_hash()
+            if current_hash != version:
+                print("Attention: The saved game was compiled in commit {} "
+                      "while the current commit is {}.".format(version, current_hash))
+        except ValueError as e:
+            print("An error occurred while trying to restore the specified data: {}".format(e))
+
+    if args['save_to'] is not None:
+        try:
+            save_data(args)
+        except Exception as e:
+            print("An error occurred when trying to save the specified data: {}".format(e))
+
+    print(args)
     # Manual Control
     self.manual = args['manual'] if 'manual' in args else False
     # EvolutionServer
@@ -24,8 +45,6 @@ class Game(object):
     self.NUM_CARS = args['num_networks']
     self.SEND_PIXELS = args['send_pixels']
     self.SIMULATOR = simulator
-    if args['restore_networks']:
-      self.SIMULATOR.restore_networks()
 
     # RPC proxy to machine learning agent
     self.client = msgpackrpc.Client(

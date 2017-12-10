@@ -434,11 +434,6 @@ def get_genetic_validator(argument=None):
       'network input size',
       default=None)
   argument.register_parameter(
-      'save_path',
-      str,
-      'Directory where the model and training information will be saved to',
-      default='./tmp')
-  argument.register_parameter(
       'tf_seed',
       int,
       'A seed for the tensorflow random number generator',
@@ -503,7 +498,7 @@ def _run_genetic(args):
       args['evolve_bias'],
       args['evolve_kernel'],
       args['scope'],
-      args['save_path'],
+      args['save_to'],
       args['tf_save_model_steps'],
       seed=args['tf_seed'])
   if args['headless']:
@@ -537,9 +532,15 @@ if __name__ == "__main__":
       required=True
   )
   parser.add_argument(
-      '-restore_networks',
-      help='If set, restore a previously saved model if available.',
-      action='store_true'
+      '-save_to',
+      help='Save whole config, trained networks and seeds to the specified directory.',
+      type=str,
+      default='./tmp'
+  )
+  parser.add_argument(
+      '-restore_from',
+      help='Restore the whole config, trained networks and seeds from the specified directory.',
+      type=str
   )
   parser.add_argument(
       '-tf_debug',
