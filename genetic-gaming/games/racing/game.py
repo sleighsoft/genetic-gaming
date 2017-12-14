@@ -344,8 +344,10 @@ class Game(object):
             -1,
             (0, 0, 0)),
         (x_position, 20))
+    bar_length = 180
     for i, car in enumerate(self.cars):
-      y_position = 40 + 20 * i
+      y_position = 45 + 30 * i
+      bar_y_position = 40 + 30 * i
       pygame.draw.rect(self.screen, car._color,
                        pygame.Rect(x_position, y_position + 5, 15, 10))
       alive_text = 'dead' if car.is_dead else 'alive'
@@ -355,8 +357,44 @@ class Game(object):
       move_text = 'R: {0:.2f}, L: {0:.2f}, A: {0:.2f}'.format(
           car.last_right_turn, car.last_left_turn, car.last_acceleration)
       move_color = (183, 18, 43) if car.is_dead else (0, 0, 0)
-      self.screen.blit(font.render(move_text, -1, move_color),
-                       (x_position + 50, y_position))
+      pygame.draw.line(self.screen, (95, 105, 119), (x_position, bar_y_position),
+                       (x_position + bar_length, bar_y_position))
+
+      def create_move_bar(probability, x, y, width, max_height):
+        bar_color = (183, 18, 43) if probability <= 0.5 else (66, 244, 69)
+        bar_height = max_height * probability
+        bar_y_pos = y - bar_height + max_height
+        bar_rect = pygame.Rect(x, bar_y_pos, width, bar_height)
+        pygame.draw.rect(self.screen, bar_color, bar_rect)
+
+      bar_width = 20
+      bar_max_height = 25
+      y = y_position
+      # Right turn
+      x_bar = x_position + 70
+      x_text = x_position + 55
+      self.screen.blit(font.render('R:', -1, (0, 0, 0)),
+                         (x_text, y_position))
+      create_move_bar(car.last_right_turn, x_bar, y, bar_width, bar_max_height)
+      # Left turn
+      x_bar = x_position + 110
+      x_text = x_position + 95
+      self.screen.blit(font.render('L:', -1, (0, 0, 0)),
+                         (x_text, y_position))
+      create_move_bar(car.last_left_turn, x_bar, y, bar_width, bar_max_height)
+      # Acceleration turn
+      x_bar = x_position + 150
+      x_text = x_position + 135
+      self.screen.blit(font.render('A:', -1, (0, 0, 0)),
+                         (x_text, y_position))
+      create_move_bar(car.last_acceleration, x_bar, y, bar_width, bar_max_height)
+
+    # Render last line
+    bar_y_position = 40 + 30 * (i + 1)
+    pygame.draw.line(self.screen, (95, 105, 119), (x_position, bar_y_position),
+                       (x_position + bar_length, bar_y_position))
+
+
 
 
   def run(self):
