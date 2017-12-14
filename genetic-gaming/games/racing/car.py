@@ -54,6 +54,10 @@ class Car(object):
     self.is_dead = False
     self.fitness = 0.0
     self.previous_position = self._position
+    # Last car movement
+    self.last_right_turn = 0.0
+    self.last_left_turn = 0.0
+    self.last_acceleration = 0.0
 
   def update_offset(self, offset):
     self._offset = offset

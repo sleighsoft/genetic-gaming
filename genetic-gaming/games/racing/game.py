@@ -211,7 +211,8 @@ class Game(object):
     return self._fitness_calc(car)
 
   def init_fitness(self, mode):
-    self._fitness_calc = fitness.FITNESS_CALCULATORS[mode](self, **self.FITNESS_CONF)
+    self._fitness_calc = fitness.FITNESS_CALCULATORS[mode](
+        self, **self.FITNESS_CONF)
 
   def build_features(self):
     features = []
@@ -246,13 +247,15 @@ class Game(object):
 
   def update_offset(self):
     if self._camera_car is None or self._camera_car.is_dead:
-        print('Searching new target car')
-        self._camera_car = self.select_new_camera_car()
+      print('Searching new target car')
+      self._camera_car = self.select_new_camera_car()
 
-    self.draw_options.offset = -self._camera_car.car_body.position + (pymunk.Vec2d(self.SCREEN_WIDTH, self.SCREEN_HEIGHT) * 0.5)
+    self.draw_options.offset = \
+        (-self._camera_car.car_body.position +
+         (pymunk.Vec2d(self.SCREEN_WIDTH, self.SCREEN_HEIGHT) * 0.5))
 
     for car in self.cars:
-        car.update_offset(self.draw_options.offset)
+      car.update_offset(self.draw_options.offset)
 
   def trigger_movements(self):
     """Triggers movements for all cars and allows manual keyboard control if
@@ -263,10 +266,13 @@ class Game(object):
       for movement, car in zip(movements, self.cars):
         if movement[0] > 0.5:
           car.trigger_rotate_right()
+          car.last_right_turn = movement[0]
         if movement[1] > 0.5:
           car.trigger_rotate_left()
+          car.last_left_turn = movement[1]
         if movement[2] > 0.5:
           car.trigger_acceleration()
+          car.last_acceleration = movement[2]
     else:
       self.manual_controls()
 
@@ -331,7 +337,7 @@ class Game(object):
 
   def render_statistics(self):
     font = pygame.font.SysFont("Arial", 15)
-    x_position = 640 - 70
+    x_position = 20
     self.screen.blit(
         font.render(
             str('Round: {}'.format(self.round)),
@@ -342,10 +348,16 @@ class Game(object):
       y_position = 40 + 20 * i
       pygame.draw.rect(self.screen, car._color,
                        pygame.Rect(x_position, y_position + 5, 15, 10))
-      text = 'dead' if car.is_dead else 'alive'
-      color = (183, 18, 43) if car.is_dead else (66, 244, 69)
-      self.screen.blit(font.render(text, -1, color),
+      alive_text = 'dead' if car.is_dead else 'alive'
+      alive_color = (183, 18, 43) if car.is_dead else (66, 244, 69)
+      self.screen.blit(font.render(alive_text, -1, alive_color),
                        (x_position + 18, y_position))
+      move_text = 'R: {0:.2f}, L: {0:.2f}, A: {0:.2f}'.format(
+          car.last_right_turn, car.last_left_turn, car.last_acceleration)
+      move_color = (183, 18, 43) if car.is_dead else (0, 0, 0)
+      self.screen.blit(font.render(move_text, -1, move_color),
+                       (x_position + 50, y_position))
+
 
   def run(self):
     # clock = pygame.time.Clock()
@@ -397,7 +409,7 @@ class Game(object):
       # Draw centers
       for center in self.centers:
         pygame.draw.circle(self.screen, 0x00ff00, (int(
-            round(center.x + self.draw_options.offset.x)), int(round(center.y+self.draw_options.offset.y))), 5)
+            round(center.x + self.draw_options.offset.x)), int(round(center.y + self.draw_options.offset.y))), 5)
 
       # Pymunk & Pygame calls
       if os.environ.get("SDL_VIDEODRIVER") is None:
