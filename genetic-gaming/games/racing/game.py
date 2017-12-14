@@ -247,7 +247,6 @@ class Game(object):
 
   def update_offset(self):
     if self._camera_car is None or self._camera_car.is_dead:
-      print('Searching new target car')
       self._camera_car = self.select_new_camera_car()
 
     self.draw_options.offset = \
@@ -264,10 +263,10 @@ class Game(object):
     if not self.manual:
       movements = self.predict()
       for movement, car in zip(movements, self.cars):
-        if movement[0] > 0.5:
+        if movement[0] > 0.5 and movement[1] <= 0.5:
           car.trigger_rotate_right()
           car.last_right_turn = movement[0]
-        if movement[1] > 0.5:
+        if movement[1] > 0.5 and movement[0] <= 0.5:
           car.trigger_rotate_left()
           car.last_left_turn = movement[1]
         if movement[2] > 0.5:
