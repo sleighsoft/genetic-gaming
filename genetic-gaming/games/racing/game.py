@@ -20,9 +20,14 @@ class Game(object):
     restore_dir = None
     if args['restore_from'] is not None:
         restore_dir = args['restore_from']
+        save_dir = args['save_to']
         try:
             saved_data = load_saved_data(restore_dir)
             version, args = saved_data['version'], saved_data['args']
+            if save_dir is not None:
+              args['save_dir'] = save_dir  # Keep on saving
+            else:
+              del args['save_dir']  # Don't overwrite saved state
             current_hash = get_current_git_hash()
             if current_hash != version:
                 print("Attention: The saved game was compiled in commit {} "
