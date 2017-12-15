@@ -210,9 +210,11 @@ class EvolutionSimulator(object):
                     write_meta_graph=False)
     print('Saving took {} seconds'.format(time.time() - start_time))
 
-  def restore_networks(self):
-    """Restores all networks from `self.save_path`."""
-    latest_checkpoint = tf.train.latest_checkpoint(self.save_path)
+  def restore_networks(self, path=None):
+    """Restores all networks from the given path, default to `self.save_path`."""
+    if not path:
+      path = self.save_path
+    latest_checkpoint = tf.train.latest_checkpoint(path)
     if latest_checkpoint:
       print('Restoring networks')
       start_time = time.time()

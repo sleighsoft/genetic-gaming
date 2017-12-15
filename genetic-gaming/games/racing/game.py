@@ -12,11 +12,35 @@ import pymunk.pygame_util
 from pymunk import Vec2d
 from . import maps, fitness, drawoptions
 from . import car as car_impl
+from ..saver import load_saved_data, save_data, get_current_git_hash
 
 
 class Game(object):
 
   def __init__(self, args, simulator=None):
+    restore_dir = None
+    if args['restore_from'] is not None:
+        restore_dir = args['restore_from']
+        save_dir = args['save_to']
+        try:
+            saved_data = load_saved_data(restore_dir)
+            version, args = saved_data['version'], saved_data['args']
+            if save_dir is not None:
+              args['save_dir'] = save_dir  # Keep on saving
+            else:
+              del args['save_dir']  # Don't overwrite saved state
+            current_hash = get_current_git_hash()
+            if current_hash != version:
+                print("Attention: The saved game was compiled in commit {} "
+                      "while the current commit is {}.".format(version, current_hash))
+        except ValueError as e:
+            print("An error occurred while trying to restore the specified data: {}".format(e))
+    elif args['save_to'] is not None:
+        try:
+            save_data(args)
+        except ValueError as e:
+            print("An error occurred when trying to save the specified data: {}".format(e))
+
     # Manual Control
     self.manual = args['manual'] if 'manual' in args else False
     # EvolutionServer
@@ -25,8 +49,8 @@ class Game(object):
     self.NUM_CARS = args['num_networks']
     self.SEND_PIXELS = args['send_pixels']
     self.SIMULATOR = simulator
-    if args['restore_networks']:
-      self.SIMULATOR.restore_networks()
+    if restore_dir is not None:
+      self.SIMULATOR.restore_networks(restore_dir)
 
     # RPC proxy to machine learning agent
     self.client = msgpackrpc.Client(
