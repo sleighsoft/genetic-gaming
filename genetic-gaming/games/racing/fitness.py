@@ -117,6 +117,11 @@ class MixedCalculator(FitnessCalculator):
     return (self._calc_a(car) * self._conf['weight_a']) + (self._calc_b(car) * self._conf['weight_b'])
 
 
+class FastestPathCalculator(PathDistanceCalculator):
+  def __call__(self, car):
+    return super().__call__(car) / (time.time() - self._game.start_time)
+
+
 FITNESS_CALCULATORS = {
     'distance_to_start': DistanceToStartCalculator,
     'distance_to_end': DistanceToEndCalculator,
@@ -125,5 +130,6 @@ FITNESS_CALCULATORS = {
     'fastest': FastestCalculator,
     'fastest_average': FastestAverageCalculator,
     'close_to_path': CloseToPathCalculator,
-    'mixed': MixedCalculator
+    'mixed': MixedCalculator,
+    'fastest_path': FastestPathCalculator
 }
