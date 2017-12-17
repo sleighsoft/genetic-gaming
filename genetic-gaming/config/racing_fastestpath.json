@@ -1,0 +1,60 @@
+{
+	"game": "racing",
+	"model": "genetic",
+	"host": "localhost",
+	"map_generator": "random",
+	"map_seed": null,
+	"fitness_mode": "fastest_path",
+	"port": 4004,
+	"num_networks": 10,
+	"num_top_networks": 4,
+	"network_input_shape": 5,
+	"network_shape": [
+		{
+			"activation": "sigmoid",
+			"shape": 5,
+			"kernel_initializer": null,
+			"bias_initializer": null,
+			"use_bias": true
+		},
+		{
+			"activation": "sigmoid",
+			"shape": 6,
+			"kernel_initializer": null,
+			"bias_initializer": null,
+			"use_bias": true
+		},
+		{
+			"activation": "sigmoid",
+			"shape": 3,
+			"kernel_initializer": null,
+			"bias_initializer": null,
+			"use_bias": true
+		}
+	],
+	"map_generator_conf": {
+        "min_width": 40,
+		"max_width": 70,
+        "min_angle": 0.31415,
+		"max_angle": 0.9424,
+        "min_length": 100,
+		"max_length": 200
+	},
+	"fitness_function_conf": {
+		"weight_a": 1,
+		"weight_b": 10,
+		"func_a": "path",
+		"func_b": "fastest_average"
+	},
+	"mutation_rate": 0.2,
+	"evolve_bias": true,
+	"evolve_kernel": false,
+	"scope": "network",
+	"send_pixels": false,
+	"save_path": "./tmp",
+	"tf_seed": 148406467005396158076837740143378710009,
+	"game_seed": null,
+	"tf_save_model_steps": 10,
+	"single_process": true,
+	"headless": false
+}
