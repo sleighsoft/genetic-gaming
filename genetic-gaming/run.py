@@ -3,8 +3,9 @@ import json
 import subprocess
 import atexit
 import pprint
-import sys
 import tensorflow as tf
+import signal
+import sys
 
 
 game_subprocess = None
@@ -575,6 +576,11 @@ def _run_genetic(args):
     simulator.start_rpc_server(args['host'], args['port'])
 
 
+def signal_handler(signal, frame):
+        print('Cancelled by Ctrl+C!')
+        sys.exit(0)
+
+
 if __name__ == "__main__":
   parser = argparse.ArgumentParser(add_help=False)
   parser.add_argument(
@@ -630,4 +636,7 @@ if __name__ == "__main__":
     import os
     os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
     tf.logging.set_verbosity(tf.logging.INFO)
+
+  signal.signal(signal.SIGINT, signal_handler)
+
   run(validated_args)
