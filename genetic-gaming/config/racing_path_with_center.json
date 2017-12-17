@@ -55,5 +55,6 @@
 	"tf_seed": 148406467005396158076837740143378710009,
 	"game_seed": 293687624403701469812932862804192145633,
 	"tf_save_model_steps": 10,
-	"single_process": true
+	"single_process": true,
+	"start_mode": "random_first"
 }

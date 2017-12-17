@@ -35,9 +35,11 @@ class Car(object):
     # Dynamic
     self.reset()
 
-  def reset(self):
+  def reset(self, new_position=None):
     """Reset car to initial settings."""
     # Pymunk
+    if new_position:
+      self._position = new_position
     self.car_body.position = self._position
     self.car_shape.color = self._color
     self.car_shape.elasticity = 1.0

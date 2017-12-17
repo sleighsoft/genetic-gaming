@@ -56,5 +56,6 @@
 	"game_seed": null,
 	"tf_save_model_steps": 10,
 	"single_process": true,
-	"headless": false
+	"headless": false,
+	"start_mode": "random_first"
 }

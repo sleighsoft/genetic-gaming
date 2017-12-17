@@ -74,6 +74,7 @@ class Game(object):
     self.GAME_WIDTH = 1280
     self.GAME_HEIGHT = 960
     self.MAP_GENERATOR_CONF = args.get('map_generator_conf', {})
+    self.START_MODE = args['start_mode']
 
     # Pygame
     self.screen = pygame.display.set_mode(
@@ -88,15 +89,16 @@ class Game(object):
     self.space.gravity = pymunk.Vec2d(0., 0.)
     self.draw_options = drawoptions.OffsetDrawOptions(self.screen)
 
-    X_START = 50
-    Y_START_MEAN = 65
+    self.X_START = 50
+    self.Y_START = 65
+    self.Y_RANDOM_RANGE = 20
 
     # Game vars
     self.walls = []
     self.centers = []
 
-    self.init_cars(x_start=X_START, y_start=Y_START_MEAN)
-    self.init_walls(x_start=X_START - 10, y_start=Y_START_MEAN)
+    self.init_cars(x_start=self.X_START, y_start=self.Y_START)
+    self.init_walls(x_start=self.X_START - 10, y_start=self.Y_START)
     self.init_tracker()
 
     # Init fitness last because calculator might depend on cars/wall/tracker
@@ -109,14 +111,16 @@ class Game(object):
     self.step = 0
     self.round = 1
 
+  def get_start_pos(self, x, y):
+    if self.START_MODE in ['random_first', 'random_each']:
+      y = (np.random.randint(-self.Y_RANDOM_RANGE, self.Y_RANDOM_RANGE) + y)
+    return x, y
+
   def init_cars(self, x_start, y_start):
     self.cars = []
-    Y_RANDOM_RANGE = 20  # 45 - 85 is valid for this map
     car_colors = []
     for _ in range(self.NUM_CARS):
-      start_x = x_start
-      start_y = (np.random.randint(-Y_RANDOM_RANGE,
-                                   Y_RANDOM_RANGE) + y_start)
+      start_x, start_y = self.get_start_pos(x_start, y_start)
 
       while True:
         car_color = (np.random.randint(0, 256),
@@ -227,7 +231,8 @@ class Game(object):
     self.start_time = time.time()
     self.car_velocity_timer = {}
     for car in self.cars:
-      car.reset()
+      new_pos = self.get_start_pos(self.X_START, self.Y_START) if self.START_MODE == 'random_each' else None
+      car.reset(new_pos)
       car.add_to_space(self.space)
       self.car_velocity_timer.update({car: self.start_time})
 

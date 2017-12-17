@@ -32,6 +32,11 @@ class ArgumentConstants(object):
       'mixed',
       'fastest_path'
   ]
+  START_MODES = [
+      'fixed',
+      'random_first',
+      'random_each'
+  ]
 
 
 class TFMappings(object):
@@ -393,6 +398,11 @@ def get_genetic_validator(argument=None):
       str,
       'Game to play',
       options=ArgumentConstants.GAMES)
+  argument.register_parameter(
+      'start_mode',
+      str,
+      'Mode for generation of starting positions',
+      options=ArgumentConstants.START_MODES)
   argument.register_parameter(
       'fitness_mode',
       str,
