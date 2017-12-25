@@ -9,7 +9,6 @@ import pprint
 import pygame
 import pymunk
 import pymunk.pygame_util
-from pymunk import Vec2d
 from . import maps, fitness, drawoptions
 from . import car as car_impl
 from ..saver import load_saved_data, save_data, get_current_git_hash
@@ -39,7 +38,7 @@ class Game(object):
         try:
             save_data(args)
         except ValueError as e:
-            print("An error occurred when trying to save the specified data: {}".format(e))
+            print("An error occurred while trying to save the specified data: {}".format(e))
 
     # Manual Control
     self.manual = args['manual'] if 'manual' in args else False
@@ -77,8 +76,10 @@ class Game(object):
     self.START_MODE = args['start_mode']
 
     # Pygame
+    # flags = pygame.HWSURFACE | pygame.FULLSCREEN
     self.screen = pygame.display.set_mode(
         (self.SCREEN_WIDTH, self.SCREEN_HEIGHT))
+    self.screen.set_alpha(None)
     pygame.display.set_caption('GG Racing (' + self.FITNESS_MODE + ')')
     asset_path = os.path.dirname(os.path.realpath(__file__))
     asset_path = os.path.join(asset_path, args['assets'])
@@ -171,6 +172,40 @@ class Game(object):
       segment = pymunk.Segment(body, start, end, 0)
       segment.filter = pymunk.ShapeFilter(categories=0x1)
       return segment
+
+    def get_dashed_line(start, end, dash_length=4, color=(0, 0, 0)):
+      """Creates a black & white dashed line from start to end"""
+      length = start.get_distance(end)
+      displacement = end - start
+      slope = displacement / length
+      line_parts = []
+      for i in range(0, int(length / dash_length), 2):
+        new_start = start + (slope * i * dash_length)
+        new_end = start + (slope * (i + 1) * dash_length)
+        if start.get_distance(new_end) > length:
+          new_end = end
+        body = pymunk.Body(body_type=pymunk.Body.STATIC)
+        segment = pymunk.Segment(body, new_start, new_end, 3)
+        segment.filter = pymunk.ShapeFilter(categories=0x2)
+        segment.color = color
+        line_parts.append(segment)
+      return line_parts
+
+    if len(wall_layout) > 2:
+      # Create starting line
+      wall_1 = wall_layout[1]
+      wall_2 = wall_layout[2]
+      p_1 = (wall_1['start'] + wall_1['end']) / 2
+      p_2 = (wall_2['start'] + wall_2['end']) / 2
+      line_parts = get_dashed_line(p_1, p_2)
+      self.space.add(line_parts)
+      # Create finish line
+      wall_1 = wall_layout[-3]
+      wall_2 = wall_layout[-2]
+      p_1 = (wall_1['start'] + wall_1['end']) / 2
+      p_2 = (wall_2['start'] + wall_2['end']) / 2
+      line_parts = get_dashed_line(p_1, p_2)
+      self.space.add(line_parts)
 
     for layout in wall_layout:
       wall = get_wall(**layout)
