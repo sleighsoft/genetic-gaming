@@ -421,6 +421,11 @@ def get_genetic_validator(argument=None):
       'network_input_shape',
       int,
       'Number of inputs of the network')
+  # argument.register_parameter(
+  #     'velocity_as_input',
+  #     'bool',
+  #     'If set, adds the car\'s velocity to the network input',
+  #     default=False)
   argument.register_parameter(
       'mutation_rate',
       float,
@@ -433,7 +438,7 @@ def get_genetic_validator(argument=None):
   argument.register_parameter(
       'headless',
       bool,
-      'If set, run the game with GUI',
+      'If set, run the game without GUI',
       default=False)
   argument.register_parameter(
       'evolve_kernel',

@@ -41,7 +41,7 @@ class Game(object):
             print("An error occurred while trying to save the specified data: {}".format(e))
 
     # Manual Control
-    self.manual = args['manual'] if 'manual' in args else False
+    self.manual = args.get('manual', False)
     # EvolutionServer
     self.ML_AGENT_HOST = args['host']
     self.ML_AGENT_PORT = args['port']
@@ -50,6 +50,11 @@ class Game(object):
     self.SIMULATOR = simulator
     if restore_dir is not None:
       self.SIMULATOR.restore_networks(restore_dir)
+
+    # Racing game only settings
+    game_settings = args['racing_game']
+    self.VELOCITY_AS_INPUT = game_settings['velocity_as_input']
+    self.NUM_CAR_SENSORS = game_settings['num_car_sensors']
 
     # RPC proxy to machine learning agent
     self.client = msgpackrpc.Client(
@@ -63,11 +68,8 @@ class Game(object):
       np.random.seed(self.GAME_SEED // 2**96)
     self.FITNESS_MODE = args.get('fitness_mode', 'distance_to_start')
     self.FITNESS_CONF = args.get('fitness_function_conf', {})
-    self.SCREEN_RESIZE_SHAPE = None
-    if 'screen_resize_shape' in args:
-      self.SCREEN_RESIZE_SHAPE = args['screen_resize_shape']
-    if 'assets' not in args:
-      args['assets'] = 'assets'
+    self.SCREEN_RESIZE_SHAPE = args.get('screen_resize_shape', None)
+    self.ASSET_DIR = args.get('assets', 'assets')
     self.SCREEN_WIDTH = 640
     self.SCREEN_HEIGHT = 480
     self.GAME_WIDTH = 1280
@@ -82,7 +84,7 @@ class Game(object):
     self.screen.set_alpha(None)
     pygame.display.set_caption('GG Racing (' + self.FITNESS_MODE + ')')
     asset_path = os.path.dirname(os.path.realpath(__file__))
-    asset_path = os.path.join(asset_path, args['assets'])
+    asset_path = os.path.join(asset_path, self.ASSET_DIR)
 
     # Pymunk
     pymunk.pygame_util.positive_y_is_up = False
@@ -141,7 +143,7 @@ class Game(object):
                          max_velocity=100,
                          color=car_color,
                          sensor_range=100,
-                         num_sensors=2)
+                         num_sensors=self.NUM_CAR_SENSORS)
       self.cars.append(car)
       car.add_to_space(self.space)
 
@@ -283,9 +285,13 @@ class Game(object):
     for car in self.cars:
       if car.is_dead:
         # TODO Make this dynamically adjust to num_sensors
-        features.append([[0.0 for _ in range(5)]])
+        num_inputs = car.num_sensors + int(self.VELOCITY_AS_INPUT) * 2
+        features.append([[0.0 for _ in range(num_inputs)]])
       else:
-        features.append([car.get_sensor_distances(self.walls)])
+        inputs = [car.get_sensor_distances(self.walls)]
+        if self.VELOCITY_AS_INPUT:
+          inputs[0] += [car.velocity.x, car.velocity.y]
+        features.append(inputs)
     return features
 
   def predict(self):

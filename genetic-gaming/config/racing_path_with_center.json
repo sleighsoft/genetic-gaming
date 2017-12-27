@@ -8,6 +8,10 @@
 	"port": 4004,
 	"num_networks": 10,
 	"num_top_networks": 4,
+	"racing_game": {
+		"velocity_as_input": false,
+		"num_car_sensors": 5
+	},
 	"network_input_shape": 5,
 	"network_shape": [
 		{

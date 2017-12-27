@@ -50,7 +50,7 @@ class Car(object):
     self.car_body.apply_impulse_at_world_point(driving_direction)
 
     # Dynamic
-    self.velocity = 0
+    self._velocity = 0
     self.rotation = self._rotation
     self.current_acceleration_time = 0
     self.is_dead = False
@@ -143,10 +143,10 @@ class Car(object):
 
   def trigger_acceleration(self):
     if self.current_acceleration_time == 0:
-      self.velocity = self._base_velocity
+      self._velocity = self._base_velocity
     else:
-      self.velocity = min(self._max_velocity,
-                          self.velocity * self._acceleration)
+      self._velocity = min(self._max_velocity,
+                          self._velocity * self._acceleration)
     self.current_acceleration_time = self._acceleration_time
 
   def move(self):
@@ -154,10 +154,10 @@ class Car(object):
     if self.current_acceleration_time > 0:
       self.current_acceleration_time -= 1
     else:
-      self.velocity = max(0, self.velocity * self._deceleration)
+      self._velocity = max(0, self._velocity * self._deceleration)
     driving_direction = Vec2d(1, 0).rotated(self.rotation)
     self.car_body.angle = self.rotation
-    self.car_body.velocity = self.velocity * driving_direction
+    self.car_body.velocity = self._velocity * driving_direction
     self.velocities.append(self.car_body.velocity.get_length())
 
   @staticmethod
@@ -170,3 +170,11 @@ class Car(object):
     new_x = x_change + x_1
     new_y = y_change + y_1
     return int(new_x), int(new_y)
+
+  @property
+  def num_sensors(self):
+    return self._num_sensors
+  
+  @property
+  def velocity(self):
+    return self.car_body.velocity
