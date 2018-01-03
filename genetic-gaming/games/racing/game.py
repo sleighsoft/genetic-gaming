@@ -9,7 +9,8 @@ from .gameinstance import GameInstance
 
 
 class Player(object):
-  def __init__(self):
+  def __init__(self, color):
+    self.color = color
     self._cars = []
 
   def add_car(self, car):
@@ -117,8 +118,15 @@ class Game(object):
         self._games.append(GameInstance(self._args, self, self._surfaces[i], self._players))
 
   def init_players(self):
+    car_colors = []
     for i in range(0, self.NUM_CARS):
-        self._players.append(Player())
+      while True:
+        car_color = (np.random.randint(0, 256),
+                     np.random.randint(0, 256),
+                     np.random.randint(0, 256))
+        if car_color not in car_colors:
+          break
+      self._players.append(Player(car_color))
 
   def reset(self):
     for g in self._games:
@@ -144,8 +152,6 @@ class Game(object):
       for event in pygame.event.get():
         if event.type == pygame.QUIT:
           sys.exit()
-
-      self.screen.fill((255, 255, 255))
 
       for g in self._games:
           if not g.is_finished():

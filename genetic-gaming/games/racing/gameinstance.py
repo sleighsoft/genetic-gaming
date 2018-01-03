@@ -74,16 +74,8 @@ class GameInstance(object):
 
   def init_cars(self, x_start, y_start, players):
     self.cars = []
-    car_colors = []
     for p in players:
       start_x, start_y = self.get_start_pos(x_start, y_start)
-
-      while True:
-        car_color = (np.random.randint(0, 256),
-                     np.random.randint(0, 256),
-                     np.random.randint(0, 256))
-        if car_color not in car_colors:
-          break
 
       car = car_impl.Car(shape=(15, 10),
                          position=(start_x, start_y),
@@ -94,7 +86,7 @@ class GameInstance(object):
                          deceleration=0.8,
                          acceleration_time=20,
                          max_velocity=100,
-                         color=car_color,
+                         color=p.color,
                          sensor_range=100,
                          num_sensors=self.NUM_CAR_SENSORS)
       self.cars.append(car)
@@ -390,6 +382,8 @@ class GameInstance(object):
                      (x_position + bar_length, bar_y_position))
 
   def run(self):
+    self.screen.fill((255, 255, 255))
+
     # Update Track
     self.update_offset()
 
@@ -409,6 +403,12 @@ class GameInstance(object):
     if os.environ.get("SDL_VIDEODRIVER") is None:
       self.space.debug_draw(self.draw_options)
       pygame.display.update()
+
+    fps = 60
+
+    dt = 1. / fps
+
+    self.space.step(dt)
 
   def is_finished(self):
     return all([car.is_dead for car in self.cars]) or time.time() - self.start_time > 40
