@@ -394,6 +394,68 @@ class EvolutionSimulator(object):
     crossover_ops = self.choose_random(crossover_ops1, crossover_ops2)
     return crossover_ops
 
+  def _perform_weighted_crossover(self, crossover_network, network1, network2, bias,
+                         kernel):
+    """Performs crossover between `network1` and `network2`. The result of the
+    crossover will be applied to `crossover_network`. The probability that operation o
+    of network n1 will be selected for the offspring is f(n1)/(f(n1)+f(n1)) if n2 is the
+    second network and f() yields the fitness of a network.
+
+    Args:
+      crossover_network: The network to which the crossover will be applied.
+      network1: A parent `Network`.
+      network2: A parent `Network`.
+      bias: A `bool`. If `True`, include the bias in the crossover.
+      kernel: A `bool`. If `True`, include the kernel in the crossover.
+
+     Returns:
+      A list of `crossover_ops` to be run with `session.run(crossover_ops)` to
+      execute the crossover on `crossover_network`.
+    """
+
+    # Probability that a weight from network 1 will be taken
+    network1_prob = network1.fitness/(network1.fitness + network2.fitness)
+
+    crossover_ops = []
+    if bias:
+      bias_scope1 = network1.trainable_biases()
+      bias_scope2 = network2.trainable_biases()
+      bias_crossover = crossover_network.trainable_biases()
+      assert len(bias_scope1) == len(bias_scope2), \
+          "Number of bias variables was {} for network1 and {} for network2 " \
+          "but has to be the same for both networks".format(
+          len(bias_scope1), len(bias_scope2))
+      assert len(bias_scope1) == len(bias_crossover), \
+          "Number of bias variables was {} for network1+2 and {} for " \
+          "crossover network but has to be the same for both networks".format(
+          len(bias_scope1), len(bias_crossover))
+      # Choose the biases
+      for i in range(len(bias_crossover)):
+        if random.random() < network1_prob:
+          crossover_ops.append(tf.assign(bias_crossover[i], bias_scope1[i]))
+        else:
+          crossover_ops.append(tf.assign(bias_crossover[i], bias_scope2[i]))
+    if kernel:
+      kernel_scope1 = network1.trainable_kernel()
+      kernel_scope2 = network2.trainable_kernel()
+      kernel_crossover = crossover_network.trainable_kernel()
+      assert len(kernel_scope1) == len(kernel_scope2), \
+          "Number of kernel variables was {} for network1 and {} for " \
+          "network2 but has to be the same for both networks".format(
+          len(kernel_scope1), len(kernel_scope2))
+      assert len(kernel_scope1) == len(kernel_crossover), \
+          "Number of kernel variables was {} for network1+2 and {} for " \
+          "crossover network but has to be the same for both networks".format(
+          len(kernel_scope1), len(kernel_crossover))
+      # Choose the kernel
+      for i in range(len(kernel_crossover)):
+        if random.random() < network1_prob:
+          crossover_ops.append(tf.assign(kernel_crossover[i], kernel_scope1[i]))
+        else:
+          crossover_ops.append(tf.assign(kernel_crossover[i], kernel_scope2[i]))
+
+    return crossover_ops
+
   def _perform_mutation(self, network, mutation_rate, bias, kernel):
     """Perform mutation of `network` with a chance of `mutation_rate`%.
 
