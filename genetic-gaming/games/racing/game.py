@@ -329,8 +329,7 @@ class Game(object):
     return furthest
 
   def update_offset(self):
-    if self._camera_car is None or self._camera_car.is_dead:
-      self._camera_car = self.select_new_camera_car()
+    self._camera_car = self.select_new_camera_car()
 
     self.draw_options.offset = \
         (-self._camera_car.car_body.position +
@@ -388,7 +387,7 @@ class Game(object):
     if (x_velocity > sys.float_info.epsilon or
             y_velocity > sys.float_info.epsilon) and not car_in_start_region:
       self.car_idle_timer[car] = time.time()
-    elif time.time() - self.car_idle_timer[car] > 3:
+    elif time.time() - self.car_idle_timer[car] > 8:
       self.kill_car(car)
       car.fitness = -sys.maxsize
 
