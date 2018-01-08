@@ -4,6 +4,53 @@ from . import constants
 from pymunk import Vec2d
 
 
+def ccw(a, b, c):
+    return (c.y - a.y) * (b.x - a.x) > (b.y - a.y) * (c.x - a.x)
+
+
+def find_intersection(p0, p1, p2, p3):
+
+    s10_x = p1.x - p0.x
+    s10_y = p1.y - p0.y
+    s32_x = p3.x - p2.x
+    s32_y = p3.y - p2.y
+
+    denom = s10_x * s32_y - s32_x * s10_y
+
+    if denom == 0:
+      return None  # collinear
+
+    denom_is_positive = denom > 0
+
+    s02_x = p0.x - p2.x
+    s02_y = p0.y - p2.y
+
+    s_numer = s10_x * s02_y - s10_y * s02_x
+
+    if (s_numer < 0) == denom_is_positive:
+      return None  # no collision
+
+    t_numer = s32_x * s02_y - s32_y * s02_x
+
+    if (t_numer < 0) == denom_is_positive:
+      return None  # no collision
+
+    if (s_numer > denom) == denom_is_positive or (t_numer > denom) == denom_is_positive:
+      return None  # no collision
+
+    # collision detected
+    t = t_numer / denom
+
+    intersection_point = Vec2d(p0.x + (t * s10_x), p0.y + (t * s10_y))
+
+    return intersection_point
+
+
+# Return true if line segments AB and CD intersect
+def intersect(p0, p1, p2, p3):
+  intersect_point = find_intersection(p0, p1, p2, p3)
+  return intersect_point is not None and intersect_point not in [p0, p1, p2, p3]
+
 class MapGenerator(object):
   def __init__(self, min_width, max_width, min_length, max_length, game_height,
                game_width, max_angle, seed, min_angle=0, start_point=None,
@@ -50,7 +97,7 @@ class MapGenerator(object):
     return left_end, right_end, angle, target_center
 
   def is_valid(self, point):
-    return 0 < point.x < self._game_width and 0 < point.y < self._game_height
+    return (0 < point.x < self._game_width and 0 < point.y < self._game_height)
 
   def zero_border_vector(self, point):
     def zero_value(val, min=0, max=100):
@@ -86,6 +133,9 @@ class MapGenerator(object):
         'end': end_point
     }
 
+  def is_valid_line(self, a, b, others):
+    return all(not intersect(a, b, w['start'], w['end']) for w in others)
+
   def generate(self):
     last_left, last_right = self.get_start_points()
     last_angle = self._start_angle
@@ -97,7 +147,8 @@ class MapGenerator(object):
       next_left, next_right, angle, center = self.get_next_endings(
           last_left, last_right, last_angle)
 
-      if self.is_valid(next_left) and self.is_valid(next_right):
+      if self.is_valid(next_left) and self.is_valid(next_right) and \
+         self.is_valid_line(last_left, next_left, found) and self.is_valid_line(last_right, next_right, found):
         found.append(self.get_wall(last_left, next_left))
         found.append(self.get_wall(last_right, next_right))
         centers.append(center)
