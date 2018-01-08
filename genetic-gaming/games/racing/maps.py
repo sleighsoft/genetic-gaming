@@ -6,10 +6,8 @@ from pymunk import Vec2d
 
 class MapGenerator(object):
   def __init__(self, min_width, max_width, min_length, max_length, game_height,
-               game_width, max_angle, min_angle=0, start_point=None,
-               start_angle=45, start_width=300, seed=None, max_tries=10):
-    seed = seed or uuid.uuid4().int
-
+               game_width, max_angle, seed, min_angle=0, start_point=None,
+               start_angle=45, start_width=300,  max_tries=10):
     random.seed(seed)
 
     print('Map seed: {}'.format(seed))

@@ -2,6 +2,8 @@ import argparse
 import sys
 import os
 import math
+import uuid
+
 import msgpackrpc
 import numpy as np
 import time
@@ -64,6 +66,7 @@ class Game(object):
     self.STEPPING = args['stepping']
     self.MAP_GENERATOR = args.get('map_generator', 'random')
     self.GAME_SEED = args.get('game_seed', None)
+    self.current_seed = self.GAME_SEED or uuid.uuid4().int
     if self.GAME_SEED is not None:
       np.random.seed(self.GAME_SEED // 2**96)
     self.FITNESS_MODE = args.get('fitness_mode', 'distance_to_start')
@@ -76,6 +79,8 @@ class Game(object):
     self.GAME_HEIGHT = 960
     self.MAP_GENERATOR_CONF = args.get('map_generator_conf', {})
     self.START_MODE = args['start_mode']
+    self.RANDOMIZE_MAP = args['randomize_map']
+    self.AGGREGATE_MAPS = args['aggregate_maps']
 
     # Pygame
     # flags = pygame.HWSURFACE | pygame.FULLSCREEN
@@ -99,6 +104,10 @@ class Game(object):
     # Game vars
     self.walls = []
     self.centers = []
+    self.start_region = None
+    self.finish_region = None
+    self.finishing_line_components = []
+    self.starting_line_components = []
 
     self.init_cars(x_start=self.X_START, y_start=self.Y_START)
     self.init_walls(x_start=self.X_START - 10, y_start=self.Y_START)
@@ -109,7 +118,7 @@ class Game(object):
 
     # Dynamic
     self._camera_car = None
-    self.reset()
+    self.reset(no_map_reset=True)
     # If -stepping
     self.step = 0
     self.round = 1
@@ -158,12 +167,19 @@ class Game(object):
     generators.get(self.MAP_GENERATOR)(x_start, y_start)
 
   def init_walls_randomly(self, x_start, y_start):
+    self.space.remove(self.walls)
+    self.space.remove(self.finishing_line_components)
+    self.space.remove(self.starting_line_components)
+
     self.walls = []
+    self.finishing_line_components = []
+    self.starting_line_components = []
+    self.centers = []
 
     gen = maps.MapGenerator(
         game_height=self.GAME_HEIGHT, game_width=self.GAME_WIDTH,
         start_point=(x_start, y_start), start_angle=0, start_width=100,
-        seed=self.GAME_SEED, **self.MAP_GENERATOR_CONF
+        seed=self.current_seed, **self.MAP_GENERATOR_CONF
     )
     wall_layout, centers = gen.generate()
     self.centers = centers
@@ -201,12 +217,14 @@ class Game(object):
       start_wall_2_half = (start_wall_2['start'] + start_wall_2['end']) / 2
       line_parts = get_dashed_line(start_wall_1_half, start_wall_2_half)
       self.space.add(line_parts)
+      self.starting_line_components = line_parts
       # Create finish line
       finish_wall_1 = wall_layout[-3]
       finish_wall_2 = wall_layout[-2]
       finish_wall_1_half = (finish_wall_1['start'] + finish_wall_1['end']) / 2
       finish_wall_2_half = (finish_wall_2['start'] + finish_wall_2['end']) / 2
       line_parts = get_dashed_line(finish_wall_1_half, finish_wall_2_half)
+      self.finishing_line_components = line_parts
       self.space.add(line_parts)
 
     for layout in wall_layout:
@@ -275,8 +293,13 @@ class Game(object):
 
     self.space.add(self.walls)
 
-  def reset(self):
-    """Reset game state (all cars)."""
+  def reset(self, no_map_reset=False):
+    """Reset game state (all cars) and if """
+    if self.RANDOMIZE_MAP and not no_map_reset:
+      self.current_seed += 1
+      self.init_walls(x_start=self.X_START - 10, y_start=self.Y_START)
+      self.init_tracker()
+
     self.start_time = time.time()
     self.car_idle_timer = {}
     for car in self.cars:
@@ -290,6 +313,7 @@ class Game(object):
     return self._fitness_calc(car)
 
   def init_fitness(self, mode):
+    self._last_fitnesses = []
     self._fitness_calc = fitness.FITNESS_CALCULATORS[mode](
         self, **self.FITNESS_CONF)
 
@@ -514,26 +538,20 @@ class Game(object):
       # Reset Game & Update Networks, if all cars are dead
       if (all([car.is_dead for car in self.cars]) or
               time.time() - self.start_time > 40):
-        print('====== Finished round {} in {} sec ======'.format(
-            self.round, time.time() - round_time))
+        print('====== Finished step {}/{} in round {} in {} sec ======'.format(
+            len(self._last_fitnesses)+1, self.AGGREGATE_MAPS, self.round, time.time() - round_time))
         round_time = time.time()
         # Calculate fitness of cars still alive
         for car in self.cars:
           if not car.is_dead:
             self.kill_car(car)
-        fitnesses = [car.fitness for car in self.cars]
+
+        self.store_fitnesses()
+
+        if len(self._last_fitnesses) == self.AGGREGATE_MAPS:
+          self.run_evolution()
+
         self.reset()
-        self.round += 1
-        print('Fitnesses:')
-        pprint.pprint(fitnesses)
-        # Evolution
-        if self.SIMULATOR:
-          if sum(fitnesses) == 0:
-            print('Resetting networks')
-            self.SIMULATOR.reset()
-          else:
-            print('Evolving')
-            self.SIMULATOR.evolve(fitnesses)
 
       # Draw centers
       for center in self.centers:
@@ -547,6 +565,30 @@ class Game(object):
       fps = 60
       dt = 1. / fps
       self.space.step(dt)
+
+  def run_evolution(self):
+    fitnesses = [0 for _ in self._last_fitnesses[0]]
+
+    for round_results in self._last_fitnesses:
+      for k, v in enumerate(round_results):
+        fitnesses[k] += v
+
+    self._last_fitnesses = []
+    self.round += 1
+    print('Fitnesses:')
+    pprint.pprint(fitnesses)
+    # Evolution
+    if self.SIMULATOR:
+      if sum(fitnesses) == 0:
+        print('Resetting networks')
+        self.SIMULATOR.reset()
+      else:
+        print('Evolving')
+        self.SIMULATOR.evolve(fitnesses)
+
+  def store_fitnesses(self):
+    fitnesses = [car.fitness for car in self.cars]
+    self._last_fitnesses.append(fitnesses)
 
   def get_rotated_point(self, x_1, y_1, x_2, y_2, radians):
     """Rotates a point (x2, y2) around (x1, y1) by radians."""

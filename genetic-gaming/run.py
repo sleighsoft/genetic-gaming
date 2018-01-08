@@ -489,6 +489,16 @@ def get_genetic_validator(argument=None):
       'The interval (number of evolutions) to save the models progress in',
       default=10)
   argument.register_parameter(
+      'aggregate_maps',
+      int,
+      'The amount of maps that should be taken into account when calculating fitness',
+      default=3)
+  argument.register_parameter(
+      'randomize_map',
+      bool,
+      'If true, map seed will be increased by one each round.',
+      default=True)
+  argument.register_parameter(
       'network_shape',
       list,
       'A list of dictionaries specifying the network shape',

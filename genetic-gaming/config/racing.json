@@ -61,5 +61,7 @@
 	"tf_save_model_steps": 10,
 	"single_process": true,
 	"headless": false,
-	"start_mode": "random_each"
+	"start_mode": "random_each",
+	"randomize_map": true,
+	"aggregate_maps": 1
 }
