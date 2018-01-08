@@ -101,7 +101,8 @@ class Car(object):
   def show_sensors(self, screen, points_of_impact):
     for i, sensor in enumerate(self.get_sensors()):
       end = sensor[1] if points_of_impact[i] is None else points_of_impact[i]
-      pygame.draw.line(screen, self._sensor_color, sensor[0] + self._offset, end + self._offset)
+      pygame.draw.line(screen, self._sensor_color, sensor[0] + self._offset,
+                       end + self._offset)
 
   def get_sensor_distances(self, walls, screen=None):
     distances = []
@@ -146,7 +147,7 @@ class Car(object):
       self._velocity = self._base_velocity
     else:
       self._velocity = min(self._max_velocity,
-                          self._velocity * self._acceleration)
+                           self._velocity * self._acceleration)
     self.current_acceleration_time = self._acceleration_time
 
   def move(self):
@@ -174,7 +175,7 @@ class Car(object):
   @property
   def num_sensors(self):
     return self._num_sensors
-  
+
   @property
   def velocity(self):
     return self.car_body.velocity
