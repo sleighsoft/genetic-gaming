@@ -19,26 +19,26 @@ class Game(object):
   def __init__(self, args, simulator=None):
     restore_dir = None
     if args['restore_from'] is not None:
-        restore_dir = args['restore_from']
-        save_dir = args['save_to']
-        try:
-            saved_data = load_saved_data(restore_dir)
-            version, args = saved_data['version'], saved_data['args']
-            if save_dir is not None:
-              args['save_dir'] = save_dir  # Keep on saving
-            else:
-              del args['save_dir']  # Don't overwrite saved state
-            current_hash = get_current_git_hash()
-            if current_hash != version:
-                print("Attention: The saved game was compiled in commit {} "
-                      "while the current commit is {}.".format(version, current_hash))
-        except ValueError as e:
-            print("An error occurred while trying to restore the specified data: {}".format(e))
+      restore_dir = args['restore_from']
+      save_dir = args['save_to']
+      try:
+        saved_data = load_saved_data(restore_dir)
+        version, args = saved_data['version'], saved_data['args']
+        if save_dir is not None:
+          args['save_dir'] = save_dir  # Keep on saving
+        else:
+          del args['save_dir']  # Don't overwrite saved state
+        current_hash = get_current_git_hash()
+        if current_hash != version:
+          print("Attention: The saved game was compiled in commit {} "
+                "while the current commit is {}.".format(version, current_hash))
+      except ValueError as e:
+        print("An error occurred while trying to restore the specified data: {}".format(e))
     elif args['save_to'] is not None:
-        try:
-            save_data(args)
-        except ValueError as e:
-            print("An error occurred while trying to save the specified data: {}".format(e))
+      try:
+        save_data(args)
+      except ValueError as e:
+        print("An error occurred while trying to save the specified data: {}".format(e))
 
     # Manual Control
     self.manual = args.get('manual', False)
@@ -195,18 +195,18 @@ class Game(object):
 
     if len(wall_layout) > 2:
       # Create starting line
-      wall_1 = wall_layout[1]
-      wall_2 = wall_layout[2]
-      p_1 = (wall_1['start'] + wall_1['end']) / 2
-      p_2 = (wall_2['start'] + wall_2['end']) / 2
-      line_parts = get_dashed_line(p_1, p_2)
+      start_wall_1 = wall_layout[1]
+      start_wall_2 = wall_layout[2]
+      start_wall_1_half = (start_wall_1['start'] + start_wall_1['end']) / 2
+      start_wall_2_half = (start_wall_2['start'] + start_wall_2['end']) / 2
+      line_parts = get_dashed_line(start_wall_1_half, start_wall_2_half)
       self.space.add(line_parts)
       # Create finish line
-      wall_1 = wall_layout[-3]
-      wall_2 = wall_layout[-2]
-      p_1 = (wall_1['start'] + wall_1['end']) / 2
-      p_2 = (wall_2['start'] + wall_2['end']) / 2
-      line_parts = get_dashed_line(p_1, p_2)
+      finish_wall_1 = wall_layout[-3]
+      finish_wall_2 = wall_layout[-2]
+      finish_wall_1_half = (finish_wall_1['start'] + finish_wall_1['end']) / 2
+      finish_wall_2_half = (finish_wall_2['start'] + finish_wall_2['end']) / 2
+      line_parts = get_dashed_line(finish_wall_1_half, finish_wall_2_half)
       self.space.add(line_parts)
 
     for layout in wall_layout:
@@ -214,6 +214,18 @@ class Game(object):
       self.walls.append(wall)
 
     self.space.add(self.walls)
+
+    self.start_region = pymunk.Poly(
+        pymunk.Body(body_type=pymunk.Body.STATIC),
+        [start_wall_1['start'], start_wall_1_half,
+         start_wall_2_half, start_wall_2['start']])
+    self.start_region.filter = pymunk.ShapeFilter(categories=0x4)
+
+    self.finish_region = pymunk.Poly(
+        pymunk.Body(body_type=pymunk.Body.STATIC),
+        [finish_wall_1_half, finish_wall_1['end'],
+         finish_wall_2['end'], finish_wall_2_half])
+    self.finish_region.filter = pymunk.ShapeFilter(categories=0x4)
 
   def init_walls_with_map(self, x_start, y_start):
 
@@ -266,12 +278,13 @@ class Game(object):
   def reset(self):
     """Reset game state (all cars)."""
     self.start_time = time.time()
-    self.car_velocity_timer = {}
+    self.car_idle_timer = {}
     for car in self.cars:
-      new_pos = self.get_start_pos(self.X_START, self.Y_START) if self.START_MODE == 'random_each' else None
+      new_pos = self.get_start_pos(self.X_START, self.Y_START) \
+          if self.START_MODE == 'random_each' else None
       car.reset(new_pos)
       car.add_to_space(self.space)
-      self.car_velocity_timer.update({car: self.start_time})
+      self.car_idle_timer.update({car: self.start_time})
 
   def calculate_current_fitness(self, car):
     return self._fitness_calc(car)
@@ -349,11 +362,12 @@ class Game(object):
     """Updates the position of all cars with the triggered movements and
     checks for collisions."""
     # Move the cars on screen
+    cars_in_start_region = self.get_cars_in_region(self.start_region)
     for car in self.cars:
       if not car.is_dead:
         car.move()
         self.check_for_collision(car)
-        self.check_for_car_not_moving(car)
+        self.kill_car_if_idle(car, car in cars_in_start_region)
         self.tracker.calculate_distances()
 
   def kill_car(self, car):
@@ -361,12 +375,20 @@ class Game(object):
     car.fitness = self.calculate_current_fitness(car)
     car.remove_from_space()
 
-  def check_for_car_not_moving(self, car):
+  def get_cars_in_region(self, region):
+    query_shapes = [q.shape for q in self.space.shape_query(region)]
+    cars = []
+    for car in self.cars:
+      if car.car_shape in query_shapes:
+        cars.append(car)
+    return cars
+
+  def kill_car_if_idle(self, car, car_in_start_region):
     x_velocity, y_velocity = car.car_body.velocity
     if (x_velocity > sys.float_info.epsilon or
-            y_velocity > sys.float_info.epsilon):
-      self.car_velocity_timer[car] = time.time()
-    elif time.time() - self.car_velocity_timer[car] > 3:
+            y_velocity > sys.float_info.epsilon) and not car_in_start_region:
+      self.car_idle_timer[car] = time.time()
+    elif time.time() - self.car_idle_timer[car] > 3:
       self.kill_car(car)
       car.fitness = -sys.maxsize
 
@@ -404,7 +426,7 @@ class Game(object):
       if pressed_key[pygame.K_UP]:
         self.cars[0].trigger_acceleration()
 
-  def render_statistics(self):
+  def render_sidebar(self):
     font = pygame.font.SysFont("Arial", 15)
     x_position = 20
     self.screen.blit(
@@ -414,57 +436,58 @@ class Game(object):
             (0, 0, 0)),
         (x_position, 20))
     bar_length = 180
-    for i, car in enumerate(self.cars):
-      y_position = 45 + 30 * i
-      bar_y_position = 40 + 30 * i
-      pygame.draw.rect(self.screen, car._color,
-                       pygame.Rect(x_position, y_position + 5, 15, 10))
-      alive_text = 'dead' if car.is_dead else 'alive'
-      alive_color = (183, 18, 43) if car.is_dead else (66, 244, 69)
-      self.screen.blit(font.render(alive_text, -1, alive_color),
-                       (x_position + 18, y_position))
-      move_text = 'R: {0:.2f}, L: {0:.2f}, A: {0:.2f}'.format(
-          car.last_right_turn, car.last_left_turn, car.last_acceleration)
-      move_color = (183, 18, 43) if car.is_dead else (0, 0, 0)
-      pygame.draw.line(self.screen, (95, 105, 119), (x_position, bar_y_position),
-                       (x_position + bar_length, bar_y_position))
+    i = 0
+    for car in self.cars:
+      if not car.is_dead:
+        y_position = 45 + 30 * i
+        bar_y_position = 40 + 30 * i
+        pygame.draw.rect(self.screen, car._color,
+                         pygame.Rect(x_position, y_position + 5, 15, 10))
+        alive_text = 'dead' if car.is_dead else 'alive'
+        alive_color = (183, 18, 43) if car.is_dead else (66, 244, 69)
+        self.screen.blit(font.render(alive_text, -1, alive_color),
+                         (x_position + 18, y_position))
+        pygame.draw.line(self.screen, (95, 105, 119),
+                         (x_position, bar_y_position),
+                         (x_position + bar_length, bar_y_position))
 
-      def create_move_bar(probability, x, y, width, max_height):
-        bar_color = (183, 18, 43) if probability <= 0.5 else (66, 244, 69)
-        bar_height = max_height * probability
-        bar_y_pos = y - bar_height + max_height
-        bar_rect = pygame.Rect(x, bar_y_pos, width, bar_height)
-        pygame.draw.rect(self.screen, bar_color, bar_rect)
+        def create_move_bar(probability, x, y, width, max_height):
+          bar_color = (183, 18, 43) if probability <= 0.5 else (66, 244, 69)
+          bar_height = max_height * probability
+          bar_y_pos = y - bar_height + max_height
+          bar_rect = pygame.Rect(x, bar_y_pos, width, bar_height)
+          pygame.draw.rect(self.screen, bar_color, bar_rect)
 
-      bar_width = 20
-      bar_max_height = 25
-      y = y_position
-      # Right turn
-      x_bar = x_position + 70
-      x_text = x_position + 55
-      self.screen.blit(font.render('R:', -1, (0, 0, 0)),
+        bar_width = 20
+        bar_max_height = 25
+        y = y_position
+        # Right turn
+        x_bar = x_position + 70
+        x_text = x_position + 55
+        self.screen.blit(font.render('R:', -1, (0, 0, 0)),
                          (x_text, y_position))
-      create_move_bar(car.last_right_turn, x_bar, y, bar_width, bar_max_height)
-      # Left turn
-      x_bar = x_position + 110
-      x_text = x_position + 95
-      self.screen.blit(font.render('L:', -1, (0, 0, 0)),
+        create_move_bar(car.last_right_turn, x_bar,
+                        y, bar_width, bar_max_height)
+        # Left turn
+        x_bar = x_position + 110
+        x_text = x_position + 95
+        self.screen.blit(font.render('L:', -1, (0, 0, 0)),
                          (x_text, y_position))
-      create_move_bar(car.last_left_turn, x_bar, y, bar_width, bar_max_height)
-      # Acceleration turn
-      x_bar = x_position + 150
-      x_text = x_position + 135
-      self.screen.blit(font.render('A:', -1, (0, 0, 0)),
+        create_move_bar(car.last_left_turn, x_bar,
+                        y, bar_width, bar_max_height)
+        # Acceleration turn
+        x_bar = x_position + 150
+        x_text = x_position + 135
+        self.screen.blit(font.render('A:', -1, (0, 0, 0)),
                          (x_text, y_position))
-      create_move_bar(car.last_acceleration, x_bar, y, bar_width, bar_max_height)
+        create_move_bar(car.last_acceleration, x_bar,
+                        y, bar_width, bar_max_height)
+        i += 1
 
     # Render last line
-    bar_y_position = 40 + 30 * (i + 1)
+    bar_y_position = 40 + 30 * i
     pygame.draw.line(self.screen, (95, 105, 119), (x_position, bar_y_position),
-                       (x_position + bar_length, bar_y_position))
-
-
-
+                     (x_position + bar_length, bar_y_position))
 
   def run(self):
     # clock = pygame.time.Clock()
@@ -486,8 +509,8 @@ class Game(object):
       self.trigger_movements()
       self.update_cars()
 
-      # Show statistics
-      self.render_statistics()
+      # Show sidebar
+      self.render_sidebar()
 
       # Reset Game & Update Networks, if all cars are dead
       if (all([car.is_dead for car in self.cars]) or
