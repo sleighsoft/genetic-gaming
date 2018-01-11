@@ -44,6 +44,8 @@ class Car(object):
     self.car_shape.color = self._color
     self.car_shape.elasticity = 1.0
     self.car_shape.sensor = True
+    self.car_shape.collision_type = 1
+    self.car_shape.car = self
     self.car_body.angle = self._rotation
     self.car_body.velocity = Vec2d(0, 0)
     driving_direction = Vec2d(0, 0).rotated(self.car_body.angle)

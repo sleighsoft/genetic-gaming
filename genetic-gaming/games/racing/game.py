@@ -13,35 +13,11 @@ import pymunk
 import pymunk.pygame_util
 from . import maps, fitness, drawoptions
 from . import car as car_impl
-from ..saver import load_saved_data, save_data, get_current_git_hash
 
 
 class Game(object):
 
   def __init__(self, args, simulator=None):
-    restore_dir = None
-    if args['restore_from'] is not None:
-      restore_dir = args['restore_from']
-      save_dir = args['save_to']
-      try:
-        saved_data = load_saved_data(restore_dir)
-        version, args = saved_data['version'], saved_data['args']
-        if save_dir is not None:
-          args['save_dir'] = save_dir  # Keep on saving
-        else:
-          del args['save_dir']  # Don't overwrite saved state
-        current_hash = get_current_git_hash()
-        if current_hash != version:
-          print("Attention: The saved game was compiled in commit {} "
-                "while the current commit is {}.".format(version, current_hash))
-      except ValueError as e:
-        print("An error occurred while trying to restore the specified data: {}".format(e))
-    elif args['save_to'] is not None:
-      try:
-        save_data(args)
-      except ValueError as e:
-        print("An error occurred while trying to save the specified data: {}".format(e))
-
     # Manual Control
     self.manual = args.get('manual', False)
     # EvolutionServer
@@ -50,8 +26,8 @@ class Game(object):
     self.NUM_CARS = args['num_networks']
     self.SEND_PIXELS = args['send_pixels']
     self.SIMULATOR = simulator
-    if restore_dir is not None:
-      self.SIMULATOR.restore_networks(restore_dir)
+    if args['restore_from']:
+      self.SIMULATOR.restore_networks(args['restore_from'])
 
     # Racing game only settings
     game_settings = args['racing_game']
@@ -97,6 +73,18 @@ class Game(object):
     self.space.gravity = pymunk.Vec2d(0., 0.)
     self.draw_options = drawoptions.OffsetDrawOptions(self.screen)
 
+    # Collision Detection
+    wall_coll_handler = self.space.add_collision_handler(1, 2)
+
+    def collision_handler(arbiter, space, data):
+      shapes = arbiter.shapes
+      for shape in shapes:
+        car = getattr(shape, 'car', None)
+        if car:
+          self.kill_car(car)
+      return False
+    wall_coll_handler.begin = collision_handler
+
     self.X_START = 50
     self.Y_START = 65
     self.Y_RANDOM_RANGE = 20
@@ -121,7 +109,7 @@ class Game(object):
     self.reset(no_map_reset=True)
     # If -stepping
     self.step = 0
-    self.round = 1
+    self.round = self.SIMULATOR.current_step
 
   def get_start_pos(self, x, y):
     if self.START_MODE in ['random_first', 'random_each']:
@@ -189,6 +177,7 @@ class Game(object):
       body.width = 5
       segment = pymunk.Segment(body, start, end, 0)
       segment.filter = pymunk.ShapeFilter(categories=0x1)
+      segment.collision_type = 2
       return segment
 
     def get_dashed_line(start, end, dash_length=4, color=(0, 0, 0)):
@@ -342,7 +331,7 @@ class Game(object):
     return movements
 
   def select_new_camera_car(self):
-    furthest = None
+    furthest = self.cars[0]
     furthest_dist = 0
     for car in self.cars:
       dist = (car.car_body.position - self.centers[0]).length
@@ -382,14 +371,13 @@ class Game(object):
       self.manual_controls()
 
   def update_cars(self):
-    """Updates the position of all cars with the triggered movements and
-    checks for collisions."""
+    """Updates the position of all cars with the triggered movements."""
     # Move the cars on screen
     cars_in_start_region = self.get_cars_in_region(self.start_region)
     for car in self.cars:
       if not car.is_dead:
         car.move()
-        self.check_for_collision(car)
+        self.render_car_sensor(car)
         self.kill_car_if_idle(car, car in cars_in_start_region)
         self.tracker.calculate_distances()
 
@@ -409,25 +397,19 @@ class Game(object):
   def kill_car_if_idle(self, car, car_in_start_region):
     x_velocity, y_velocity = car.car_body.velocity
     if (x_velocity > sys.float_info.epsilon or
-            y_velocity > sys.float_info.epsilon) and not car_in_start_region:
+            y_velocity > sys.float_info.epsilon):
       self.car_idle_timer[car] = time.time()
-    elif time.time() - self.car_idle_timer[car] > 8:
+    elif time.time() - self.car_idle_timer[car] > 2:
       self.kill_car(car)
       car.fitness = -sys.maxsize
 
-  def check_for_collision(self, car):
+  def render_car_sensor(self, car):
     """Checks is any sensor distance is below the threshold. If so, mark car as
     dead, set cars fitness and remove it from the space."""
     walls_in_range = self.space.point_query(
         car.car_body.position, car._sensor_range, pymunk.ShapeFilter(mask=0x1))
     walls_in_range = [query.shape for query in walls_in_range]
-    distances = car.get_sensor_distances(walls_in_range, self.screen)
-    for distance in distances:
-        # TODO Find suitable collision threshold
-        # If you run into a border "distance" will only be zero when the car is
-        # already stuck in the center of the wall
-      if distance < 5.0:
-        self.kill_car(car)
+    car.get_sensor_distances(walls_in_range, self.screen)
 
   def manual_controls(self):
     """Allow manual controls of the first car."""
@@ -513,12 +495,14 @@ class Game(object):
                      (x_position + bar_length, bar_y_position))
 
   def run(self):
-    # clock = pygame.time.Clock()
+    clock = pygame.time.Clock()
     pygame.font.init()
 
     round_time = time.time()
+    fps = 120
 
     while True:
+      clock.tick(fps)
       for event in pygame.event.get():
         if event.type == pygame.QUIT:
           sys.exit()
@@ -556,14 +540,14 @@ class Game(object):
       # Draw centers
       for center in self.centers:
         pygame.draw.circle(self.screen, 0x00ff00, (int(
-            round(center.x + self.draw_options.offset.x)), int(round(center.y + self.draw_options.offset.y))), 5)
+            round(center.x + self.draw_options.offset.x)),
+            int(round(center.y + self.draw_options.offset.y))), 5)
 
       # Pymunk & Pygame calls
       if os.environ.get("SDL_VIDEODRIVER") is None:
         self.space.debug_draw(self.draw_options)
         pygame.display.update()
-      fps = 60
-      dt = 1. / fps
+      dt = 1. / (fps / 8)
       self.space.step(dt)
 
   def run_evolution(self):
