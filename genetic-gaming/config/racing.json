@@ -54,7 +54,7 @@
 		"c1": 1.0,
 		"c2": 1.0,
 		"c3": 0.2,
-		"fixed": null
+		"fixed": 0.8
 	},
 	"mutation_rate": 0.2,
 	"evolve_bias": true,
