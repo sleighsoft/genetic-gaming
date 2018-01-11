@@ -557,7 +557,6 @@ class Game(object):
       for k, v in enumerate(round_results):
         fitnesses[k] += v
 
-    self._last_fitnesses = []
     self.round += 1
     print('Fitnesses:')
     pprint.pprint(fitnesses)
@@ -572,6 +571,8 @@ class Game(object):
 
   def store_fitnesses(self):
     fitnesses = [car.fitness for car in self.cars]
+    if len(self._last_fitnesses) == self.AGGREGATE_MAPS:
+      self._last_fitnesses.pop(0)
     self._last_fitnesses.append(fitnesses)
 
   def get_rotated_point(self, x_1, y_1, x_2, y_2, radians):

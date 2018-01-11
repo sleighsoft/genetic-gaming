@@ -52,9 +52,9 @@
 	},
 	"mutation_params": {
 		"c1": 0.5,
-		"c2": 1,
+		"c2": 1.0,
 		"c3": 0.1,
-		"fixed": null
+		"fixed": 0.8
 	},
 	"mutation_rate": 0.2,
 	"evolve_bias": true,
@@ -69,5 +69,5 @@
 	"headless": false,
 	"start_mode": "random_each",
 	"randomize_map": true,
-	"aggregate_maps": 1
+	"aggregate_maps": 3
 }

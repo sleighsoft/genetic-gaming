@@ -304,7 +304,6 @@ class EvolutionSimulator(object):
     """
     evolution_ops = []
     sorted_networks = self.sort_by_fitness(self.networks)
-    self.calc_unsuccessful_rounds()
     winners = sorted_networks[0:self.num_top_networks]
     if len(sorted_networks) > 0 and winners[0].fitness < 0:
       # Reinitialize all networks, they all failed without any achievement
@@ -518,7 +517,6 @@ class EvolutionSimulator(object):
       return min((1.0,
                   self.mut_params['c1'] * math.exp(
                     -(self.mut_params['c2'] + (self.mut_params['c3'] * self.unsuccessful_rounds)))))
-
 
   @staticmethod
   def _mutate(variable):
