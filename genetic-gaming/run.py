@@ -6,6 +6,7 @@ import pprint
 import tensorflow as tf
 import signal
 import sys
+from games.saver import load_saved_data, save_data, get_current_git_hash
 
 
 game_subprocess = None
@@ -107,11 +108,11 @@ class Argument(object):
 
   @property
   def has_options(self):
-      return self._options is not argparse.SUPPRESS
+    return self._options is not argparse.SUPPRESS
 
   @property
   def has_function(self):
-      return self._function is not argparse.SUPPRESS
+    return self._function is not argparse.SUPPRESS
 
   @property
   def name(self):
@@ -183,25 +184,25 @@ class Argument(object):
 
 class FlagAction(argparse.Action):
 
-    def __init__(self,
-                 option_strings,
-                 dest,
-                 const,
-                 default=None,
-                 required=False,
-                 help=None,
-                 metavar=None):
-        super().__init__(
-            option_strings=option_strings,
-            dest=dest,
-            nargs=0,
-            const=argparse.SUPPRESS,
-            default=default,
-            required=required,
-            help=help)
+  def __init__(self,
+               option_strings,
+               dest,
+               const,
+               default=None,
+               required=False,
+               help=None,
+               metavar=None):
+    super().__init__(
+        option_strings=option_strings,
+        dest=dest,
+        nargs=0,
+        const=argparse.SUPPRESS,
+        default=default,
+        required=required,
+        help=help)
 
-    def __call__(self, parser, namespace, values, option_string=None):
-        setattr(namespace, self.dest, self.const)
+  def __call__(self, parser, namespace, values, option_string=None):
+    setattr(namespace, self.dest, self.const)
 
 
 class ArgumentValidator(object):
@@ -362,32 +363,32 @@ class GeneticValidator(object):
 
   @staticmethod
   def validate_map_gen_conf(map_conf_arg):
-      map_conf_arg['min_width'] = Argument('min_width', int, 'Minimum track width')\
-          .validate(map_conf_arg['min_width'])
-      map_conf_arg['max_width'] = Argument('max_width', int, 'Maximum track width')\
-          .validate(map_conf_arg['max_width'])
-      map_conf_arg['min_angle'] = Argument('min_angle', float, 'Minimum turn angle')\
-          .validate(map_conf_arg['min_angle'])
-      map_conf_arg['max_angle'] = Argument('max_angle', float, 'Maximum turn angle')\
-          .validate(map_conf_arg['max_angle'])
-      map_conf_arg['min_length'] = Argument('min_length', int, 'Minimum segment length')\
-          .validate(map_conf_arg['min_length'])
-      map_conf_arg['max_length'] = Argument('max_length', int, 'Maximum segment length')\
-          .validate(map_conf_arg['max_length'])
+    map_conf_arg['min_width'] = Argument('min_width', int, 'Minimum track width')\
+        .validate(map_conf_arg['min_width'])
+    map_conf_arg['max_width'] = Argument('max_width', int, 'Maximum track width')\
+        .validate(map_conf_arg['max_width'])
+    map_conf_arg['min_angle'] = Argument('min_angle', float, 'Minimum turn angle')\
+        .validate(map_conf_arg['min_angle'])
+    map_conf_arg['max_angle'] = Argument('max_angle', float, 'Maximum turn angle')\
+        .validate(map_conf_arg['max_angle'])
+    map_conf_arg['min_length'] = Argument('min_length', int, 'Minimum segment length')\
+        .validate(map_conf_arg['min_length'])
+    map_conf_arg['max_length'] = Argument('max_length', int, 'Maximum segment length')\
+        .validate(map_conf_arg['max_length'])
 
-      return map_conf_arg
+    return map_conf_arg
 
   @staticmethod
   def validate_fitness_conf(fitness_conf):
-      fitness_conf['func_a'] = Argument('func_a', str, 'Fitness function A')\
-          .validate(fitness_conf['func_a'])
-      fitness_conf['func_b'] = Argument('func_b', str, 'Fitness function B')\
-          .validate(fitness_conf['func_b'])
-      fitness_conf['weight_a'] = Argument('weight_a', int, 'Weight for function A')\
-          .validate(fitness_conf['weight_a'])
-      fitness_conf['weight_b'] = Argument('weight_b', int, 'Weight for function B')\
-          .validate(fitness_conf['weight_b'])
-      return fitness_conf
+    fitness_conf['func_a'] = Argument('func_a', str, 'Fitness function A')\
+        .validate(fitness_conf['func_a'])
+    fitness_conf['func_b'] = Argument('func_b', str, 'Fitness function B')\
+        .validate(fitness_conf['func_b'])
+    fitness_conf['weight_a'] = Argument('weight_a', int, 'Weight for function A')\
+        .validate(fitness_conf['weight_a'])
+    fitness_conf['weight_b'] = Argument('weight_b', int, 'Weight for function B')\
+        .validate(fitness_conf['weight_b'])
+    return fitness_conf
 
   @staticmethod
   def validate_mutation_params(mutation_params):
@@ -552,17 +553,24 @@ def get_general_validator(argument=None):
   return argument
 
 
-def load_and_merge_args(args, parser):
+def load_config_and_merge_with_parser(parser_args):
   """Loads settings from `args.config` (a JSON file) and merges them with
   argparse arguments. Settings from `argparse` will override the JSON settings.
   """
-  if hasattr(args, 'config'):
-    with open(args.config) as config_file:
+  if hasattr(parser_args, 'config'):
+    with open(parser_args.config) as config_file:
       merged_args = json.load(config_file)
-      for key, value in args.__dict__.items():
+      for key, value in parser_args.__dict__.items():
         if value is not argparse.SUPPRESS:
           merged_args.update({key: value})
   return merged_args
+
+
+def merge_config_with_parser_args(config, parser_args):
+  for key, value in parser_args.__dict__.items():
+    if value is not argparse.SUPPRESS:
+      config.update({key: value})
+  return config
 
 
 def run(args):
@@ -607,8 +615,8 @@ def _run_genetic(args):
 
 
 def signal_handler(signal, frame):
-        print('Cancelled by Ctrl+C!')
-        sys.exit(0)
+  print('Cancelled by Ctrl+C!')
+  sys.exit(0)
 
 
 if __name__ == "__main__":
@@ -646,27 +654,55 @@ if __name__ == "__main__":
   parser = general_argument_validator.add_to_argparse(parser)
   config_arg_position = sys.argv.index('-config')
   config_arg = sys.argv[config_arg_position:config_arg_position + 2]
-  args = parser.parse_known_args()[0]
-  args = load_and_merge_args(args, parser)
-  validated_args = general_argument_validator.validate(args)
+  known_args = parser.parse_known_args()[0]
 
-  if validated_args['model'] == 'genetic':
+  if known_args.restore_from is not None:
+    restore_dir = known_args.restore_from
+    save_dir = known_args.save_to
+    print('Restoring config from {}'.format(restore_dir))
+    try:
+      saved_data = load_saved_data(restore_dir)
+      version, args = saved_data['version'], saved_data['args']
+      if save_dir is not None:
+        args['save_dir'] = save_dir  # Keep on saving
+      else:
+        del args['save_dir']  # Don't overwrite saved state
+      current_hash = get_current_git_hash()
+      if current_hash != version:
+        print('Warning: The saved game was compiled in commit {} '
+              'while the current commit is {}.'.format(version, current_hash))
+    except ValueError as e:
+      print('An error occurred while trying to restore the specified'
+            'data: {}'.format(e))
+    config = merge_config_with_parser_args(saved_data['args'], known_args)
+  else:
+    config = load_config_and_merge_with_parser(known_args)
+
+  validated_config = general_argument_validator.validate(config)
+  if validated_config['model'] == 'genetic':
     genetic_argument_validator = get_genetic_validator()
     parser = genetic_argument_validator.add_to_argparse(parser)
-    args = parser.parse_args()
-    args = load_and_merge_args(args, parser)
-    if args.get('help'):
+    parsed_args = parser.parse_args()
+    config = merge_config_with_parser_args(validated_config, parsed_args)
+    if config.get('help'):
       parser.print_help()
       sys.exit()
-    validated_args = genetic_argument_validator.validate(args)
+    validated_config = genetic_argument_validator.validate(config)
+
+  if known_args.save_to is not None:
+    try:
+      save_data(config)
+    except ValueError as e:
+      print('An error occurred while trying to save the specified'
+            'data: {}'.format(e))
 
   print('Running with the following parameters:')
-  pprint.pprint(validated_args)
-  if not validated_args['tf_debug']:
+  pprint.pprint(validated_config)
+  if not validated_config['tf_debug']:
     import os
     os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
     tf.logging.set_verbosity(tf.logging.INFO)
 
   signal.signal(signal.SIGINT, signal_handler)
 
-  run(validated_args)
+  run(validated_config)

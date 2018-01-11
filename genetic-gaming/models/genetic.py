@@ -239,6 +239,7 @@ class EvolutionSimulator(object):
       path = self.save_path
     latest_checkpoint = tf.train.latest_checkpoint(path)
     if latest_checkpoint:
+      self.current_step = int(latest_checkpoint.split('-')[-1])
       print('Restoring networks')
       start_time = time.time()
       self.saver.restore(self.session, latest_checkpoint)
