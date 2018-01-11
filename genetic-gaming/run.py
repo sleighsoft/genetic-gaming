@@ -658,13 +658,6 @@ if __name__ == "__main__":
   else:
     config = load_config_and_merge_with_parser(known_args)
 
-  if known_args.save_to is not None:
-    try:
-      save_data(config)
-    except ValueError as e:
-      print('An error occurred while trying to save the specified'
-            'data: {}'.format(e))
-
   validated_config = general_argument_validator.validate(config)
   if validated_config['model'] == 'genetic':
     genetic_argument_validator = get_genetic_validator()
@@ -675,6 +668,13 @@ if __name__ == "__main__":
       parser.print_help()
       sys.exit()
     validated_config = genetic_argument_validator.validate(config)
+
+  if known_args.save_to is not None:
+    try:
+      save_data(config)
+    except ValueError as e:
+      print('An error occurred while trying to save the specified'
+            'data: {}'.format(e))
 
   print('Running with the following parameters:')
   pprint.pprint(validated_config)

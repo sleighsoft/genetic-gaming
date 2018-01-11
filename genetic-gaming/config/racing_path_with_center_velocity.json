@@ -60,5 +60,7 @@
 	"game_seed": 293687624403701469812932862804192145633,
 	"tf_save_model_steps": 10,
 	"single_process": true,
-	"start_mode": "random_first"
+	"start_mode": "random_first",
+	"randomize_map": true,
+	"aggregate_maps": 4
 }

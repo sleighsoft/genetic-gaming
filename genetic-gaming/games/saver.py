@@ -1,16 +1,19 @@
 import json
 import os
-
+import copy
 
 def get_current_git_hash():
     return os.popen("git log | head -n 1 | sed 's/commit //g' | tr -d '\n'").read()
 
 
 def save_data(args):
+    args = copy.deepcopy(args)
     save_dir = args['save_to']
     current_arguments = args
     current_git_hash = get_current_git_hash()
     data = {'args': current_arguments, 'version': current_git_hash}
+    for index, layer_config in enumerate(data['args']['network_shape']):
+        data['args']['network_shape'][index]['activation'] = data['args']['network_shape'][index]['activation'].__name__
     with open(os.path.join(save_dir, "data.json"), 'w+') as f:
         f.write(json.dumps(data, sort_keys=True,
                            indent=4, separators=(',', ': ')))
