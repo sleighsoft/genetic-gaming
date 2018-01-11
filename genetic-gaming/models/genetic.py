@@ -4,6 +4,9 @@ import time
 import tensorflow as tf
 import uuid
 import os
+import math
+
+from functools import reduce
 
 
 class Network(object):
@@ -66,6 +69,7 @@ class EvolutionSimulator(object):
                scope,
                save_path,
                save_model_steps,
+               mut_params,
                seed=None):
     """Creates an EvolutionSimulator. It provides an easy interface for
     running multiple networks in parallel and improving them through a
@@ -81,6 +85,7 @@ class EvolutionSimulator(object):
       evolve_kernel:
       scope:
       save_path:
+      mut_params:
       save_model_steps:
     """
 
@@ -96,6 +101,9 @@ class EvolutionSimulator(object):
     self.checkpoint_path = os.path.join(self.save_path, 'checkpoint')
     self.save_model_steps = save_model_steps
     self.current_step = 0
+    self.unsuccessful_rounds = 0
+    self.last_avg_fitness = None
+    self.mut_params = mut_params
 
     # Set seed
     seed = seed or uuid.uuid4().int
@@ -167,6 +175,16 @@ class EvolutionSimulator(object):
       return False
     return self.networks[index](self.session, input).tolist()
 
+  def calc_unsuccessful_rounds(self, fitnesses):
+    avg = reduce(lambda x, y: x + y, fitnesses) / len(fitnesses)
+    if self.last_avg_fitness is not None:
+      diff = avg/self.last_avg_fitness
+      if diff < 1.1:
+        self.unsuccessful_rounds += 1
+      if diff > 1.2:
+        self.unsuccessful_rounds = 0
+    self.last_avg_fitness = avg
+
   def evolve(self, fitnesses):
     """Triggers evolution of all networks based on `fitnesses`.
 
@@ -175,6 +193,9 @@ class EvolutionSimulator(object):
         network[0] and so on.
     """
     start_time = time.time()
+
+    self.calc_unsuccessful_rounds(fitnesses)
+
     for fitness, network in zip(fitnesses, self.networks):
       network.fitness = fitness
     evolution = self.evolve_networks()
@@ -259,6 +280,7 @@ class EvolutionSimulator(object):
       copy_ops.append(tf.assign(tv, sv))
     return copy_ops
 
+
   def evolve_networks(self):
     """Evolves all networks in `self.networks` and uses their individual
     fitnesses to rank them.
@@ -279,6 +301,7 @@ class EvolutionSimulator(object):
     """
     evolution_ops = []
     sorted_networks = self.sort_by_fitness(self.networks)
+    self.calc_unsuccessful_rounds()
     winners = sorted_networks[0:self.num_top_networks]
     if len(sorted_networks) > 0 and winners[0].fitness < 0:
       # Reinitialize all networks, they all failed without any achievement
@@ -476,11 +499,21 @@ class EvolutionSimulator(object):
       variables += network.trainable_kernel()
     if bias:
       variables += network.trainable_biases()
+    mutation_rate = self.get_mut_rate()
     for v in variables:
       if random.random() < mutation_rate:
         mutation = self._mutate(v)
         mutation_ops.append(tf.assign(v, mutation))
     return mutation_ops
+
+  def get_mut_rate(self):
+    # Somehow usefull values are returned by:
+    # c1 = 0.5, c2 = 1 c3 = 0.1
+    return min((1.0,
+                self.mut_params['c1'] *
+                math.exp(-(self.mut_params['c2'] +
+                           (self.mut_params['c3'] * self.unsuccessful_rounds)))))
+
 
   @staticmethod
   def _mutate(variable):

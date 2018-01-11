@@ -51,6 +51,7 @@ def intersect(p0, p1, p2, p3):
   intersect_point = find_intersection(p0, p1, p2, p3)
   return intersect_point is not None and intersect_point not in [p0, p1, p2, p3]
 
+
 class MapGenerator(object):
   def __init__(self, min_width, max_width, min_length, max_length, game_height,
                game_width, max_angle, seed, min_angle=0, start_point=None,
