@@ -51,10 +51,10 @@
 		"func_b": "fastest_average"
 	},
 	"mutation_params": {
-		"c1": 0.5,
+		"c1": 1.0,
 		"c2": 1.0,
-		"c3": 0.1,
-		"fixed": 0.8
+		"c3": 0.2,
+		"fixed": null
 	},
 	"mutation_rate": 0.2,
 	"evolve_bias": true,

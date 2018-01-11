@@ -198,6 +198,12 @@ class Game(object):
         line_parts.append(segment)
       return line_parts
 
+    for layout in wall_layout:
+      wall = get_wall(**layout)
+      self.walls.append(wall)
+
+    self.space.add(self.walls)
+
     if len(wall_layout) > 2:
       # Create starting line
       start_wall_1 = wall_layout[1]
@@ -216,23 +222,17 @@ class Game(object):
       self.finishing_line_components = line_parts
       self.space.add(line_parts)
 
-    for layout in wall_layout:
-      wall = get_wall(**layout)
-      self.walls.append(wall)
+      self.start_region = pymunk.Poly(
+          pymunk.Body(body_type=pymunk.Body.STATIC),
+          [start_wall_1['start'], start_wall_1_half,
+           start_wall_2_half, start_wall_2['start']])
+      self.start_region.filter = pymunk.ShapeFilter(categories=0x4)
 
-    self.space.add(self.walls)
-
-    self.start_region = pymunk.Poly(
-        pymunk.Body(body_type=pymunk.Body.STATIC),
-        [start_wall_1['start'], start_wall_1_half,
-         start_wall_2_half, start_wall_2['start']])
-    self.start_region.filter = pymunk.ShapeFilter(categories=0x4)
-
-    self.finish_region = pymunk.Poly(
-        pymunk.Body(body_type=pymunk.Body.STATIC),
-        [finish_wall_1_half, finish_wall_1['end'],
-         finish_wall_2['end'], finish_wall_2_half])
-    self.finish_region.filter = pymunk.ShapeFilter(categories=0x4)
+      self.finish_region = pymunk.Poly(
+          pymunk.Body(body_type=pymunk.Body.STATIC),
+          [finish_wall_1_half, finish_wall_1['end'],
+           finish_wall_2['end'], finish_wall_2_half])
+      self.finish_region.filter = pymunk.ShapeFilter(categories=0x4)
 
   def init_walls_with_map(self, x_start, y_start):
 

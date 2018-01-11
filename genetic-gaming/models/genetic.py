@@ -516,7 +516,7 @@ class EvolutionSimulator(object):
     else:
       return min((1.0,
                   self.mut_params['c1'] * math.exp(
-                    -(self.mut_params['c2'] + (self.mut_params['c3'] * self.unsuccessful_rounds)))))
+                    -1/(self.mut_params['c2'] + (self.mut_params['c3'] * self.unsuccessful_rounds)))))
 
   @staticmethod
   def _mutate(variable):
