@@ -195,11 +195,13 @@ class EvolutionSimulator(object):
     start_time = time.time()
 
     self.calc_unsuccessful_rounds(fitnesses)
-
-    for fitness, network in zip(fitnesses, self.networks):
-      network.fitness = fitness
-    evolution = self.evolve_networks()
-    self.session.run(evolution)
+    if self.unsuccessful_rounds > 50:
+      self.reset()
+    else:
+      for fitness, network in zip(fitnesses, self.networks):
+        network.fitness = fitness
+      evolution = self.evolve_networks()
+      self.session.run(evolution)
     print('Evolution took {} seconds!'.format(time.time() - start_time))
     self.current_step += 1
     if self.save_model_steps > 0:
@@ -507,7 +509,7 @@ class EvolutionSimulator(object):
     return mutation_ops
 
   def get_mut_rate(self):
-    # Somehow usefull values are returned by:
+    # Somehow useful values are returned by:
     # c1 = 0.5, c2 = 1 c3 = 0.1
     return min((1.0,
                 self.mut_params['c1'] *
