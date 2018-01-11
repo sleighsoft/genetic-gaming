@@ -511,10 +511,12 @@ class EvolutionSimulator(object):
   def get_mut_rate(self):
     # Somehow useful values are returned by:
     # c1 = 0.5, c2 = 1 c3 = 0.1
-    return min((1.0,
-                self.mut_params['c1'] *
-                math.exp(-(self.mut_params['c2'] +
-                           (self.mut_params['c3'] * self.unsuccessful_rounds)))))
+    if self.mut_params['fixed'] is not None:
+      return self.mut_params['fixed']
+    else:
+      return min((1.0,
+                  self.mut_params['c1'] * math.exp(
+                    -(self.mut_params['c2'] + (self.mut_params['c3'] * self.unsuccessful_rounds)))))
 
 
   @staticmethod

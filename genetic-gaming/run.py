@@ -389,6 +389,18 @@ class GeneticValidator(object):
           .validate(fitness_conf['weight_b'])
       return fitness_conf
 
+  @staticmethod
+  def validate_mutation_params(mutation_params):
+      mutation_params['c1'] = Argument('c1', float, 'Param C1')\
+          .validate(mutation_params['c1'])
+      mutation_params['c2'] = Argument('c2', float, 'Param C2')\
+          .validate(mutation_params['c2'])
+      mutation_params['c3'] = Argument('c3', float, 'Param C3')\
+          .validate(mutation_params['c3'])
+      mutation_params['fixed'] = Argument('fixed', float, 'If set to anything but None, the mut rate will be fixed.')\
+          .validate(mutation_params['fixed'])
+      return mutation_params
+
 
 def get_genetic_validator(argument=None):
   """Creates an `ArgumentValidator` for genetic models."""
@@ -518,6 +530,13 @@ def get_genetic_validator(argument=None):
       function=GeneticValidator.validate_fitness_conf,
       disable_to_argparse=True
   )
+  argument.register_parameter(
+      'mutation_params',
+      dict,
+      'A dictionary containing the 3 variables for the mutation generation',
+      function=GeneticValidator.validate_mutation_params,
+      disable_to_argparse=True
+  )
   return argument
 
 
@@ -564,6 +583,7 @@ def _run_genetic(args):
       args['scope'],
       args['save_to'],
       args['tf_save_model_steps'],
+      args['mutation_params'],
       seed=args['tf_seed'])
   if args['headless']:
     os.environ["SDL_VIDEODRIVER"] = "dummy"
