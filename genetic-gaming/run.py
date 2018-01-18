@@ -781,4 +781,4 @@ def run_multiple():
 
 
 if __name__ == "__main__":
-    run_multiple()
+    run_with_args()
