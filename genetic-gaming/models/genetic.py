@@ -112,10 +112,19 @@ class EvolutionSimulator(object):
     print('Tensorflow seed: {}'.format(seed))
 
     # Init networks
-    self.networks = self.create_networks(
-        num_networks, input_shape, network_shape, scope)
+    self.parent_network = Network(input_shape, network_shape, scope='{}Parent'.format(scope))
+    self.noise_matrices = []
+    for layer_variables in self.parent_network.trainable_variables():
+      self.noise_matrices += tf.random_normal(shape=((num_networks,) + tf.shape(layer_variables)), mean=0, stddev=1, dtype=tf.float32)
+
+    self.children_networks = self.create_networks(num_networks, input_shape, network_shape, scope)
+    for network_index, network in enumerate(self.children_networks):
+      for variable_index, variable in enumerate(network.trainable_variables()):
+        variable += self.noise_matrices[variable_index][network_index, :]
+
     self.session = tf.Session()
     self.session.run(tf.global_variables_initializer())
+    print(variable.eval(session=self.session))
     self.writer = tf.summary.FileWriter(self.save_path, self.session.graph)
     self.saver = tf.train.Saver(save_relative_paths=True)
 
@@ -156,7 +165,7 @@ class EvolutionSimulator(object):
             'networks {}'.format(len(inputs), self.num_networks))
       return False
     predictions = []
-    for x, network in zip(inputs, self.networks):
+    for x, network in zip(inputs, self.children_networks):
       predictions += network(self.session, x).tolist()
     return predictions
 
@@ -170,10 +179,10 @@ class EvolutionSimulator(object):
     Returns:
       Predicted outputs of shape `[num_outputs]`.
     """
-    if index < 0 or index > len(self.networks):
+    if index < 0 or index > len(self.children_networks):
       print('[Error] Index {} is not valid'.format(index))
       return False
-    return self.networks[index](self.session, input).tolist()
+    return self.children_networks[index](self.session, input).tolist()
 
   def calc_unsuccessful_rounds(self, fitnesses):
     avg = reduce(lambda x, y: x + y, fitnesses) / len(fitnesses)
@@ -198,7 +207,7 @@ class EvolutionSimulator(object):
     if self.unsuccessful_rounds > 50:
       self.reset()
     else:
-      for fitness, network in zip(fitnesses, self.networks):
+      for fitness, network in zip(fitnesses, self.children_networks):
         network.fitness = fitness
       evolution = self.evolve_networks()
       self.session.run(evolution)
@@ -219,11 +228,11 @@ class EvolutionSimulator(object):
     return True
 
   def _reset_fitness_for_all(self):
-    for n in self.networks:
+    for n in self.children_networks:
       n.reset_fitness()
 
   def _reinitialize_all(self):
-    self.session.run([n.reinitialize_network() for n in self.networks])
+    self.session.run([n.reinitialize_network() for n in self.children_networks])
 
   def save_networks(self):
     """Saves all networks to `self.checkpoint_path`."""
@@ -303,7 +312,7 @@ class EvolutionSimulator(object):
       execute the evolution.
     """
     evolution_ops = []
-    sorted_networks = self.sort_by_fitness(self.networks)
+    sorted_networks = self.sort_by_fitness(self.children_networks)
     winners = sorted_networks[0:self.num_top_networks]
     if len(sorted_networks) > 0 and winners[0].fitness < 0:
       # Reinitialize all networks, they all failed without any achievement
@@ -505,6 +514,9 @@ class EvolutionSimulator(object):
     for v in variables:
       if random.random() < mutation_rate:
         mutation = self._mutate(v)
+        # tf.matmul oder *
+        # v_op = tf.matmul(v[10x10], [10x10])
+        # tf.assign(v, v_op)
         mutation_ops.append(tf.assign(v, mutation))
     return mutation_ops
 
