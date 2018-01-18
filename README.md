@@ -42,7 +42,7 @@ If 'aggregate_maps' is set to an value greater than one, the fitness will be cal
 the sum of the last n rounds instead of only using the last round. This makes sense if the map generator
 is configured to create a different map in each round.
 
-## Map configuration
+### Map configuration
 Configuration options: 'map_generator', 'map_seed', 'start_mode', 'randomize_map', 'fix_map_rounds', 'map_generator_conf'
 
 There are two map generators implemented, you can choose which one to use with 'map_generator':
