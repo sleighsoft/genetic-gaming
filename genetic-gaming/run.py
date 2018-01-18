@@ -507,6 +507,11 @@ def get_genetic_validator(argument=None):
       'The amount of maps that should be taken into account when calculating fitness',
       default=3)
   argument.register_parameter(
+      'fix_map_rounds',
+      int,
+      'The amount of rounds the map should not change in the beginning',
+      default=10)
+  argument.register_parameter(
       'randomize_map',
       bool,
       'If true, map seed will be increased by one each round.',

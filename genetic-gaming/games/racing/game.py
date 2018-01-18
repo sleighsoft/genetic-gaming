@@ -56,7 +56,9 @@ class Game(object):
     self.MAP_GENERATOR_CONF = args.get('map_generator_conf', {})
     self.START_MODE = args['start_mode']
     self.RANDOMIZE_MAP = args['randomize_map']
+    self.FIX_MAP_ROUNDS = args['fix_map_rounds']
     self.AGGREGATE_MAPS = args['aggregate_maps']
+    self.fix_map_rounds_left = self.FIX_MAP_ROUNDS
 
     # Pygame
     # flags = pygame.HWSURFACE | pygame.FULLSCREEN
@@ -284,7 +286,7 @@ class Game(object):
 
   def reset(self, no_map_reset=False):
     """Reset game state (all cars) and if """
-    if self.RANDOMIZE_MAP and not no_map_reset:
+    if self.RANDOMIZE_MAP and self.fix_map_rounds_left <= 0 and no_map_reset:
       self.current_seed += 1
       self.init_walls(x_start=self.X_START - 10, y_start=self.Y_START)
       self.init_tracker()
@@ -523,7 +525,8 @@ class Game(object):
       if (all([car.is_dead for car in self.cars]) or
               time.time() - self.start_time > 40):
         print('====== Finished step {}/{} in round {} in {} sec ======'.format(
-            len(self._last_fitnesses)+1, self.AGGREGATE_MAPS, self.round, time.time() - round_time))
+            len(self._last_fitnesses), self.AGGREGATE_MAPS, self.round, time.time() - round_time))
+        self.fix_map_rounds_left -= 1
         round_time = time.time()
         # Calculate fitness of cars still alive
         for car in self.cars:
