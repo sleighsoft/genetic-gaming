@@ -291,7 +291,7 @@ class ArgumentValidator(object):
         required_with_default.append(arg)
     print('Required parameter (name):')
     for arg in required:
-      print('\t{}'.format(arg))
+      print('\t{}'.format(arg.name))
     print('Required parameter (name -> options):')
     for arg in required_with_options:
       print('\t{} -> {}'.format(arg.name, arg.options))
