@@ -72,11 +72,11 @@ to the same results when using the same seed. 'fix_map_rounds' can be set to an 
 greater than zero, to fix the map for the first n rounds, this reduces the difficulty of the overall game.
 
 
-'start_mode' describes how the spawnpoints of the cars are chosen. The spawn point
+'start_mode' describes how the spawnpoints of the cars are chosen. The center spawn point
 is in general the same every round, but to be able to distinguish the cars, they are spawned
 around this fixed point.
-- 'fixed': Spawns all of them at exactly the same point every round.
-- 'random_first': Spawns them randomly around the spawnpoint, but spawns them
+- 'fixed': Spawns all of them exactly at the center spawn point.
+- 'random_first': Spawns them randomly around the center spawn point, but spawns them
  on the same point for every round afterwards.
-- 'random_each': Reassigns the spawn points after every round.
+- 'random_each': Reassigns the spawn points around the center spawn point after every round.
 
