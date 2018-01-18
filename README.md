@@ -10,8 +10,7 @@ To simplify reproducing bugs or agent accomplishments, it's possible to save and
 
 ## Configuration parameters
 
-Throught development, quite a lot of possible configuration parameters concerning different
-features were introduced.
+It's possible to alter nearly every feature included in this package using configuration files.
 
 ### Fitness configuration
 Configuration options: 'fitness_mode', 'fitness_function_conf', 'aggregate_maps'
@@ -37,10 +36,10 @@ The system allows different fitness functions to be used and to be combined with
     A combination of two of the above. Can be configured in the fitness_function_conf group, where func_a and _b denote the
     fitness-functions that should be combined and weight_a and _b the factors. Total fitness is calculated func_a() * weight_a + func_b() * weight_b
 - 'fastest_path':
-    Divides the path the car travelled ('path') by the time he took to do so.
+    Divides the path the car travelled ('path') by the time he needed to do so.
     
 If 'aggregate_maps' is set to an value greater than one, the fitness will be calculated by using
-the sum of the last n rounds instead of only using the last rounds. This makes sense if the map generator
+the sum of the last n rounds instead of only using the last round. This makes sense if the map generator
 is configured to create a different map in each round.
 
 ## Map configuration
