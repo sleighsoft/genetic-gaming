@@ -234,7 +234,8 @@ class EvolutionSimulator(object):
     print('Saving took {} seconds'.format(time.time() - start_time))
 
   def restore_networks(self, path=None):
-    """Restores all networks from the given path, default to `self.save_path`."""
+    """Restores all networks from the given path, defaults to
+    `self.save_path`."""
     if not path:
       path = self.save_path
     latest_checkpoint = tf.train.latest_checkpoint(path)
