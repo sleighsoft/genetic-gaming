@@ -690,7 +690,7 @@ def create_arg_parse():
 def create_arg_parse_for_multi_runner():
   parser = argparse.ArgumentParser(add_help=False)
   parser.add_argument(
-      '-config',
+      '-config_dir',
       help='Config directory name to load run parameter-files from.',
       type=str,
       required=True
@@ -774,9 +774,9 @@ def run_multiple():
     if not os.path.isdir(known_args.save_dir):
         os.mkdir(known_args.save_dir)
 
-    for f in os.listdir(known_args.config):
-        if os.path.isfile(os.path.join(known_args.config, f)):
-            run_with_args(['-config', os.path.join(known_args.config, f),
+    for f in os.listdir(known_args.config_dir):
+        if os.path.isfile(os.path.join(known_args.config_dir, f)):
+            run_with_args(['-config', os.path.join(known_args.config_dir, f),
                            '-save_to', os.path.join(known_args.save_dir, f.replace('.json', ''))])
 
 
