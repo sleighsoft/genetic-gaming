@@ -286,7 +286,7 @@ class Game(object):
 
   def reset(self, no_map_reset=False):
     """Reset game state (all cars) and if """
-    if self.RANDOMIZE_MAP and self.fix_map_rounds_left <= 0 and no_map_reset:
+    if self.RANDOMIZE_MAP and self.fix_map_rounds_left <= 0 and not no_map_reset:
       self.current_seed += 1
       self.init_walls(x_start=self.X_START - 10, y_start=self.Y_START)
       self.init_tracker()
@@ -526,6 +526,8 @@ class Game(object):
               time.time() - self.start_time > 40):
         print('====== Finished step {}/{} in round {} in {} sec ======'.format(
             len(self._last_fitnesses), self.AGGREGATE_MAPS, self.round, time.time() - round_time))
+        if self.fix_map_rounds_left > 0:
+          print('Rounds left until randomization: ' + str(self.fix_map_rounds_left))
         self.fix_map_rounds_left -= 1
         round_time = time.time()
         # Calculate fitness of cars still alive
