@@ -69,6 +69,7 @@
 	"headless": false,
 	"start_mode": "random_each",
 	"randomize_map": false,
-	"aggregate_maps": 0,
-	"fix_map_rounds": 0
+	"aggregate_maps": 1,
+	"fix_map_rounds": 0,
+	"max_rounds": 10
 }

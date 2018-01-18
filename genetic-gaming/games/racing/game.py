@@ -58,6 +58,7 @@ class Game(object):
     self.RANDOMIZE_MAP = args['randomize_map']
     self.FIX_MAP_ROUNDS = args['fix_map_rounds']
     self.AGGREGATE_MAPS = args['aggregate_maps']
+    self.MAX_ROUNDS = args['max_rounds']
     self.fix_map_rounds_left = self.FIX_MAP_ROUNDS
 
     # Pygame
@@ -536,6 +537,10 @@ class Game(object):
             self.kill_car(car)
 
         self.store_fitnesses()
+
+        if 0 < self.MAX_ROUNDS <= self.round:
+          print("###### EXITING BECAUSE OF ROUND LIMIT IN ROUND " + str(self.round) + "#####")
+          return
 
         if len(self._last_fitnesses) == self.AGGREGATE_MAPS:
           self.run_evolution()

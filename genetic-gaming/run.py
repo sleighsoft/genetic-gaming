@@ -514,6 +514,11 @@ def get_genetic_validator(argument=None):
       'The amount of rounds the map should not change in the beginning',
       default=10)
   argument.register_parameter(
+      'max_rounds',
+      int,
+      'Amount of rounds the game is supposed to run. If 0, runs infinitely.',
+      default=0)
+  argument.register_parameter(
       'randomize_map',
       bool,
       'If true, map seed will be increased by one each round.',
@@ -608,6 +613,7 @@ def _run_genetic(args):
     game = module.Game(args, simulator)
     print('Starting game {}'.format(args['game']))
     game.run()
+    tf.reset_default_graph()
   else:
     global game_subprocess
     game_path = 'games/{}/game.py'.format(args['game'])
@@ -720,10 +726,10 @@ def load_config(parser, args=None):
   return general_argument_validator.validate(config), known_args.save_to
 
 
-def load_genetic_config(validated_config, parser):
+def load_genetic_config(validated_config, parser, args=None):
   genetic_argument_validator = get_genetic_validator()
   parser = genetic_argument_validator.add_to_argparse(parser)
-  parsed_args = parser.parse_args()
+  parsed_args = parser.parse_args(args)
   config = merge_config_with_parser_args(validated_config, parsed_args)
   if config.get('help'):
       parser.print_help()
@@ -739,7 +745,7 @@ def run_with_args(args=None):
   validated_config, save_to = load_config(parser, args)
 
   if validated_config['model'] == 'genetic':
-      validated_config = load_genetic_config(validated_config, parser)
+      validated_config = load_genetic_config(validated_config, parser, args)
 
   if save_to is not None:
       try:
@@ -765,11 +771,14 @@ def run_multiple():
     parser = create_arg_parse_for_multi_runner()
     known_args = parser.parse_known_args()[0]
 
+    if not os.path.isdir(known_args.save_dir):
+        os.mkdir(known_args.save_dir)
+
     for f in os.listdir(known_args.config):
-        if os.path.isfile(f):
+        if os.path.isfile(os.path.join(known_args.config, f)):
             run_with_args(['-config', os.path.join(known_args.config, f),
                            '-save_to', os.path.join(known_args.save_dir, f.replace('.json', ''))])
 
 
 if __name__ == "__main__":
-    run_with_args()
+    run_multiple()
