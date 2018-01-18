@@ -3,6 +3,8 @@ import json
 import subprocess
 import atexit
 import pprint
+
+import os
 import tensorflow as tf
 import signal
 import sys
@@ -580,7 +582,7 @@ def merge_config_with_parser_args(config, parser_args):
 
 def run(args):
   if args['model'] == 'genetic':
-    _run_genetic(args)
+    return _run_genetic(args)
 
 
 def _run_genetic(args):
@@ -624,12 +626,33 @@ def signal_handler(signal, frame):
   sys.exit(0)
 
 
-if __name__ == "__main__":
+def restore_config(known_args):
+  restore_dir = known_args.restore_from
+  save_dir = known_args.save_to
+  print('Restoring config from {}'.format(restore_dir))
+  try:
+    saved_data = load_saved_data(restore_dir)
+    version, args = saved_data['version'], saved_data['args']
+    if save_dir is not None:
+      args['save_dir'] = save_dir  # Keep on saving
+    else:
+      del args['save_dir']  # Don't overwrite saved state
+    current_hash = get_current_git_hash()
+    if current_hash != version:
+      print('Warning: The saved game was compiled in commit {} '
+            'while the current commit is {}.'.format(version, current_hash))
+  except ValueError as e:
+    print('An error occurred while trying to restore the specified'
+          'data: {}'.format(e))
+  else:
+    return merge_config_with_parser_args(saved_data['args'], known_args)
+
+
+def create_arg_parse():
   parser = argparse.ArgumentParser(add_help=False)
   parser.add_argument(
       '-config',
-      help='Config file name to load run parameters from. If specified, all '
-      'other CLI arguments will be discarded.',
+      help='Config file name to load run parameters from.',
       type=str,
       required=True
   )
@@ -655,54 +678,79 @@ if __name__ == "__main__":
       default=argparse.SUPPRESS,
       help='Shows the help message.'
   )
+  return parser
+
+
+def create_arg_parse_for_multi_runner():
+  parser = argparse.ArgumentParser(add_help=False)
+  parser.add_argument(
+      '-config',
+      help='Config directory name to load run parameter-files from.',
+      type=str,
+      required=True
+  )
+  parser.add_argument(
+      '-save_dir',
+      help='Directory to save all results.',
+      type=str,
+      required=True
+  )
+  parser.add_argument(
+      '-tf_debug',
+      help='Will set tensorflow logging to debug.',
+      action='store_true'
+  )
+  parser.add_argument(
+      '--help',
+      action='store_true',
+      default=argparse.SUPPRESS,
+      help='Shows the help message.'
+  )
+  return parser
+
+
+def load_config(parser, args=None):
   general_argument_validator = get_general_validator()
   parser = general_argument_validator.add_to_argparse(parser)
-  config_arg_position = sys.argv.index('-config')
-  config_arg = sys.argv[config_arg_position:config_arg_position + 2]
-  known_args = parser.parse_known_args()[0]
-
+  known_args = parser.parse_known_args(args)[0]
   if known_args.restore_from is not None:
-    restore_dir = known_args.restore_from
-    save_dir = known_args.save_to
-    print('Restoring config from {}'.format(restore_dir))
-    try:
-      saved_data = load_saved_data(restore_dir)
-      version, args = saved_data['version'], saved_data['args']
-      if save_dir is not None:
-        args['save_dir'] = save_dir  # Keep on saving
-      else:
-        del args['save_dir']  # Don't overwrite saved state
-      current_hash = get_current_git_hash()
-      if current_hash != version:
-        print('Warning: The saved game was compiled in commit {} '
-              'while the current commit is {}.'.format(version, current_hash))
-    except ValueError as e:
-      print('An error occurred while trying to restore the specified'
-            'data: {}'.format(e))
-    config = merge_config_with_parser_args(saved_data['args'], known_args)
+      config = restore_config(known_args)
   else:
-    config = load_config_and_merge_with_parser(known_args)
+      config = load_config_and_merge_with_parser(known_args)
+  return general_argument_validator.validate(config), known_args.save_to
 
-  validated_config = general_argument_validator.validate(config)
-  if validated_config['model'] == 'genetic':
-    genetic_argument_validator = get_genetic_validator()
-    parser = genetic_argument_validator.add_to_argparse(parser)
-    parsed_args = parser.parse_args()
-    config = merge_config_with_parser_args(validated_config, parsed_args)
-    if config.get('help'):
+
+def load_genetic_config(validated_config, parser):
+  genetic_argument_validator = get_genetic_validator()
+  parser = genetic_argument_validator.add_to_argparse(parser)
+  parsed_args = parser.parse_args()
+  config = merge_config_with_parser_args(validated_config, parsed_args)
+  if config.get('help'):
       parser.print_help()
       sys.exit()
-    validated_config = genetic_argument_validator.validate(config)
+  validated_config = genetic_argument_validator.validate(config)
 
-  if known_args.save_to is not None:
-    try:
-      save_data(config)
-    except ValueError as e:
-      print('An error occurred while trying to save the specified'
-            'data: {}'.format(e))
+  return validated_config
+
+
+def run_with_args(args=None):
+  parser = create_arg_parse()
+
+  validated_config, save_to = load_config(parser, args)
+
+  if validated_config['model'] == 'genetic':
+      validated_config = load_genetic_config(validated_config, parser)
+
+  if save_to is not None:
+      try:
+          save_data(validated_config)
+      except ValueError as e:
+          print('An error occurred while trying to save the specified'
+                'data: {}'.format(e))
 
   print('Running with the following parameters:')
   pprint.pprint(validated_config)
+
   if not validated_config['tf_debug']:
     import os
     os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
@@ -711,3 +759,17 @@ if __name__ == "__main__":
   signal.signal(signal.SIGINT, signal_handler)
 
   run(validated_config)
+
+
+def run_multiple():
+    parser = create_arg_parse_for_multi_runner()
+    known_args = parser.parse_known_args()[0]
+
+    for f in os.listdir(known_args.config):
+        if os.path.isfile(f):
+            run_with_args(['-config', os.path.join(known_args.config, f),
+                           '-save_to', os.path.join(known_args.save_dir, f.replace('.json', ''))])
+
+
+if __name__ == "__main__":
+    run_with_args()
