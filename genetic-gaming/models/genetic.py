@@ -64,6 +64,7 @@ class EvolutionSimulator(object):
                network_shape,
                num_networks,
                num_top_networks,
+               mutation_rate,
                evolve_bias,
                evolve_kernel,
                scope,
@@ -104,6 +105,7 @@ class EvolutionSimulator(object):
     self.unsuccessful_rounds = 0
     self.last_avg_fitness = None
     self.mut_params = mut_params
+    self.mutation_rate = mutation_rate
     self.weighted_crossover_evolve = weighted_crossover_evolve
 
     # Set seed
@@ -564,8 +566,8 @@ class EvolutionSimulator(object):
   def get_mut_rate(self):
     # Somehow useful values are returned by:
     # c1 = 0.5, c2 = 1 c3 = 0.1
-    if self.mut_params['fixed'] is not None:
-      return self.mut_params['fixed']
+    if self.mutation_rate is not None:
+      return self.mutation_rate
     else:
       return min((1.0,
                   self.mut_params['c1'] * math.exp(
