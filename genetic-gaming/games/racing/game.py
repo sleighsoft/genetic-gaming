@@ -498,14 +498,14 @@ class Game(object):
                      (x_position + bar_length, bar_y_position))
 
   def run(self):
-    clock = pygame.time.Clock()
+    self.clock = pygame.time.Clock()
     pygame.font.init()
 
     round_time = time.time()
-    fps = 120
+    fps = 60
 
     while True:
-      clock.tick(fps)
+      self.clock.tick()
       for event in pygame.event.get():
         if event.type == pygame.QUIT:
           sys.exit()
@@ -557,7 +557,7 @@ class Game(object):
       if os.environ.get("SDL_VIDEODRIVER") is None:
         self.space.debug_draw(self.draw_options)
         pygame.display.update()
-      dt = 1. / (fps / 8)
+      dt = 1. / (fps)
       self.space.step(dt)
 
   def run_evolution(self):

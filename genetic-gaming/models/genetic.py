@@ -1,5 +1,6 @@
 import random
 import msgpackrpc
+import sys
 import time
 import tensorflow as tf
 import uuid
@@ -34,7 +35,7 @@ class Network(object):
 
   @property
   def name(self):
-      return self.scope if isinstance(self.scope, str) else self.scope.name
+    return self.scope if isinstance(self.scope, str) else self.scope.name
 
   def trainable_variables(self):
     return tf.trainable_variables(self.scope.name + '/')
@@ -63,13 +64,13 @@ class EvolutionSimulator(object):
                network_shape,
                num_networks,
                num_top_networks,
-               mutation_rate,
                evolve_bias,
                evolve_kernel,
                scope,
                save_path,
                save_model_steps,
                mut_params,
+               weighted_crossover_evolve=False,
                seed=None):
     """Creates an EvolutionSimulator. It provides an easy interface for
     running multiple networks in parallel and improving them through a
@@ -92,7 +93,6 @@ class EvolutionSimulator(object):
     assert num_networks > 1
     assert num_top_networks > 1
     self.num_top_networks = num_top_networks
-    self.mutation_rate = mutation_rate
     self.evolve_kernel = evolve_kernel
     self.evolve_bias = evolve_bias
     self.scope = scope
@@ -104,12 +104,21 @@ class EvolutionSimulator(object):
     self.unsuccessful_rounds = 0
     self.last_avg_fitness = None
     self.mut_params = mut_params
+    self.weighted_crossover_evolve = weighted_crossover_evolve
 
     # Set seed
     seed = seed or uuid.uuid4().int
     tf.set_random_seed(seed)
     random.seed(seed)
     print('Tensorflow seed: {}'.format(seed))
+
+    # Implementation of https://blog.openai.com/evolution-strategies/
+    self.sigma = 0.2
+    self.alpha = 0.7
+    self.parent_network = Network(input_shape, network_shape,
+                                  scope='parent_network')
+    self.N = None
+    # End Implementation
 
     # Init networks
     self.networks = self.create_networks(
@@ -118,6 +127,47 @@ class EvolutionSimulator(object):
     self.session.run(tf.global_variables_initializer())
     self.writer = tf.summary.FileWriter(self.save_path, self.session.graph)
     self.saver = tf.train.Saver(save_relative_paths=True)
+
+  def evolve_weighted_crossover(self):
+    import numpy as np
+    # Parent variables
+    parent_vars = self.parent_network.trainable_variables()
+    parent_vars_as_vectors = [tf.reshape(v, [-1]) for v in parent_vars]
+    vector_sizes = [tf.size(v) for v in parent_vars_as_vectors]
+    w = tf.concat(parent_vars_as_vectors, 0)
+    # Evolution
+    R = [n.fitness for n in self.networks]
+    A = tf.constant(
+        np.expand_dims((R - np.mean(R)) /
+                       (np.std(R) + sys.float_info.epsilon), -1), tf.float32)
+
+    if self.N is None:
+      N = tf.random_normal(tf.TensorShape([self.num_networks, w.shape[0]]))
+    else:
+      N = self.N
+
+    w = w - tf.squeeze(self.alpha / (self.num_networks * self.sigma) *
+                       tf.matmul(tf.transpose(N), A))
+    new_vars_as_vectors = tf.split(w, vector_sizes, 0)
+    new_vars = new_vars = [tf.reshape(n, v.shape)
+                           for n, v in zip(new_vars_as_vectors, parent_vars)]
+    evolution_ops = []
+    for var, new_var in zip(
+            self.parent_network.trainable_variables(), new_vars):
+      evolution_ops.append(tf.assign(var, new_var))
+    # Population Generation
+    self.N = tf.random_normal([self.num_networks, w.shape[0].value])
+    network_update_ops = []
+    for i in range(len(self.networks)):
+      w = w + self.sigma * self.N[i, :]
+      new_vars_as_vectors = tf.split(w, vector_sizes, 0)
+      new_vars = [tf.reshape(n, v.shape) for n, v in zip(
+          new_vars_as_vectors, parent_vars)]
+      for var, new_var in zip(
+              self.networks[i].trainable_variables(), new_vars):
+        network_update_ops.append(tf.assign(var, new_var))
+
+    return evolution_ops + network_update_ops
 
   def start_rpc_server(self, host, port):
     """Starts the simulator as an RPC server at `host:port`."""
@@ -178,7 +228,7 @@ class EvolutionSimulator(object):
   def calc_unsuccessful_rounds(self, fitnesses):
     avg = reduce(lambda x, y: x + y, fitnesses) / len(fitnesses)
     if self.last_avg_fitness is not None:
-      diff = avg/self.last_avg_fitness
+      diff = avg / self.last_avg_fitness
       if diff < 1.1:
         self.unsuccessful_rounds += 1
       if diff > 1.2:
@@ -200,7 +250,10 @@ class EvolutionSimulator(object):
     else:
       for fitness, network in zip(fitnesses, self.networks):
         network.fitness = fitness
-      evolution = self.evolve_networks()
+      if self.weighted_crossover_evolve:
+        evolution = self.evolve_weighted_crossover()
+      else:
+        evolution = self.evolve_networks()
       self.session.run(evolution)
     print('Evolution took {} seconds!'.format(time.time() - start_time))
     self.current_step += 1
@@ -284,7 +337,6 @@ class EvolutionSimulator(object):
       copy_ops.append(tf.assign(tv, sv))
     return copy_ops
 
-
   def evolve_networks(self):
     """Evolves all networks in `self.networks` and uses their individual
     fitnesses to rank them.
@@ -337,8 +389,7 @@ class EvolutionSimulator(object):
         # Assure, that all assignments are run before performing mutation
         with tf.control_dependencies(evolution_ops):
           ops = self._perform_mutation(
-              network, self.mutation_rate, self.evolve_bias,
-              self.evolve_kernel)
+              network, self.evolve_bias, self.evolve_kernel)
           evolution_ops += ops
     return evolution_ops
 
@@ -422,7 +473,7 @@ class EvolutionSimulator(object):
     return crossover_ops
 
   def _perform_weighted_crossover(self, crossover_network, network1, network2, bias,
-                         kernel):
+                                  kernel):
     """Performs crossover between `network1` and `network2`. The result of the
     crossover will be applied to `crossover_network`. The probability that operation o
     of network n1 will be selected for the offspring is f(n1)/(f(n1)+f(n1)) if n2 is the
@@ -441,7 +492,7 @@ class EvolutionSimulator(object):
     """
 
     # Probability that a weight from network 1 will be taken
-    network1_prob = network1.fitness/(network1.fitness + network2.fitness)
+    network1_prob = network1.fitness / (network1.fitness + network2.fitness)
 
     crossover_ops = []
     if bias:
@@ -477,18 +528,19 @@ class EvolutionSimulator(object):
       # Choose the kernel
       for i in range(len(kernel_crossover)):
         if random.random() < network1_prob:
-          crossover_ops.append(tf.assign(kernel_crossover[i], kernel_scope1[i]))
+          crossover_ops.append(
+              tf.assign(kernel_crossover[i], kernel_scope1[i]))
         else:
-          crossover_ops.append(tf.assign(kernel_crossover[i], kernel_scope2[i]))
+          crossover_ops.append(
+              tf.assign(kernel_crossover[i], kernel_scope2[i]))
 
     return crossover_ops
 
-  def _perform_mutation(self, network, mutation_rate, bias, kernel):
+  def _perform_mutation(self, network, bias, kernel):
     """Perform mutation of `network` with a chance of `mutation_rate`%.
 
     Args:
       network: The `Network` to which the mutation will be applied.
-      mutation_rate: A `float`. The chance of mutation.
       bias: A `bool`. If `True`, include the bias in the crossover.
       kernel: A `bool`. If `True`, include the kernel in the crossover.
 
@@ -517,7 +569,7 @@ class EvolutionSimulator(object):
     else:
       return min((1.0,
                   self.mut_params['c1'] * math.exp(
-                    -1/(self.mut_params['c2'] + (self.mut_params['c3'] * self.unsuccessful_rounds)))))
+                      -1 / (self.mut_params['c2'] + (self.mut_params['c3'] * self.unsuccessful_rounds)))))
 
   @staticmethod
   def _mutate(variable):

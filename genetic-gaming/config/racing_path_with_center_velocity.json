@@ -50,17 +50,22 @@
 		"func_a": "close_to_path",
 		"func_b": "path"
 	},
-	"mutation_rate": 0.8,
+	"mutation_params": {
+		"c1": 1.0,
+		"c2": 1.0,
+		"c3": 0.2,
+		"fixed": 0.8
+	},
 	"evolve_bias": true,
 	"evolve_kernel": true,
 	"scope": "network",
 	"send_pixels": false,
 	"save_path": "./tmp_closest",
-	"tf_seed": 148406467005396158076837740143378710009,
+	"tf_seed": null,
 	"game_seed": 293687624403701469812932862804192145633,
 	"tf_save_model_steps": 10,
 	"single_process": true,
 	"start_mode": "random_first",
-	"randomize_map": true,
-	"aggregate_maps": 4
+	"randomize_map": false,
+	"aggregate_maps": 1
 }

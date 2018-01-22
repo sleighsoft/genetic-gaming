@@ -394,15 +394,15 @@ class GeneticValidator(object):
 
   @staticmethod
   def validate_mutation_params(mutation_params):
-      mutation_params['c1'] = Argument('c1', float, 'Param C1')\
-          .validate(mutation_params['c1'])
-      mutation_params['c2'] = Argument('c2', float, 'Param C2')\
-          .validate(mutation_params['c2'])
-      mutation_params['c3'] = Argument('c3', float, 'Param C3')\
-          .validate(mutation_params['c3'])
-      mutation_params['fixed'] = Argument('fixed', float, 'If set to anything but None, the mut rate will be fixed.')\
-          .validate(mutation_params['fixed'])
-      return mutation_params
+    mutation_params['c1'] = Argument('c1', float, 'Param C1')\
+        .validate(mutation_params['c1'])
+    mutation_params['c2'] = Argument('c2', float, 'Param C2')\
+        .validate(mutation_params['c2'])
+    mutation_params['c3'] = Argument('c3', float, 'Param C3')\
+        .validate(mutation_params['c3'])
+    mutation_params['fixed'] = Argument('fixed', float, 'If set to anything but None, the mut rate will be fixed.')\
+        .validate(mutation_params['fixed'])
+    return mutation_params
 
 
 def get_genetic_validator(argument=None):
@@ -436,10 +436,6 @@ def get_genetic_validator(argument=None):
       'network_input_shape',
       int,
       'Number of inputs of the network')
-  argument.register_parameter(
-      'mutation_rate',
-      float,
-      'Regulates the rate of mutation')
   argument.register_parameter(
       'evolve_bias',
       bool,
@@ -506,7 +502,8 @@ def get_genetic_validator(argument=None):
   argument.register_parameter(
       'aggregate_maps',
       int,
-      'The amount of maps that should be taken into account when calculating fitness',
+      'The amount of maps that should be taken into account when calculating'
+      ' fitness.',
       default=3)
   argument.register_parameter(
       'fix_map_rounds',
@@ -549,6 +546,13 @@ def get_genetic_validator(argument=None):
       'A dictionary containing the 3 variables for the mutation generation',
       function=GeneticValidator.validate_mutation_params,
       disable_to_argparse=True
+  )
+  argument.register_parameter(
+      'weighted_crossover_evolve',
+      bool,
+      'If true, use weighted crossover instead of mutation based evolutions'
+      ' strategy.',
+      default=False
   )
   return argument
 
@@ -597,13 +601,13 @@ def _run_genetic(args):
       args['network_shape'],
       args['num_networks'],
       args['num_top_networks'],
-      args['mutation_rate'],
       args['evolve_bias'],
       args['evolve_kernel'],
       args['scope'],
       args['save_to'],
       args['tf_save_model_steps'],
       args['mutation_params'],
+      args['weighted_crossover_evolve'],
       seed=args['tf_seed'])
   if args['headless']:
     os.environ["SDL_VIDEODRIVER"] = "dummy"
