@@ -688,6 +688,11 @@ def create_arg_parse():
       default=argparse.SUPPRESS,
       help='Shows the help message.'
   )
+  parser.add_argument(
+      '-evaluation_dir',
+      help='Directory in which the results should be saved',
+      type=str
+  )
   return parser
 
 
