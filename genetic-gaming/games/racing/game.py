@@ -15,6 +15,7 @@ from . import maps, fitness, drawoptions
 from . import car as car_impl
 import json
 
+
 class Game(object):
 
   def __init__(self, args, simulator=None):
@@ -39,6 +40,7 @@ class Game(object):
         msgpackrpc.Address(self.ML_AGENT_HOST, self.ML_AGENT_PORT))
 
     # Game
+    self.fps = 60
     self.STEPPING = args['stepping']
     self.MAP_GENERATOR = args.get('map_generator', 'random')
     self.GAME_SEED = args.get('game_seed', None)
@@ -61,6 +63,7 @@ class Game(object):
     self.MAX_ROUNDS = args['max_rounds']
     self.fix_map_rounds_left = self.FIX_MAP_ROUNDS
     self.fitness_history = []
+    self.finish_history = []
     self.save_to = args['save_to']
 
     # Pygame
@@ -112,9 +115,10 @@ class Game(object):
     # Dynamic
     self._camera_car = None
     self.reset(no_map_reset=True)
+    self.round = self.SIMULATOR.current_step
+    self.frames = 0
     # If -stepping
     self.step = 0
-    self.round = self.SIMULATOR.current_step
 
   def get_start_pos(self, x, y):
     if self.START_MODE in ['random_first', 'random_each']:
@@ -294,14 +298,14 @@ class Game(object):
       self.init_walls(x_start=self.X_START - 10, y_start=self.Y_START)
       self.init_tracker()
 
-    self.start_time = time.time()
-    self.car_idle_timer = {}
+    self.frames = 0
+    self.car_idle_frames = {}
     for car in self.cars:
       new_pos = self.get_start_pos(self.X_START, self.Y_START) \
           if self.START_MODE == 'random_each' else None
       car.reset(new_pos)
       car.add_to_space(self.space)
-      self.car_idle_timer.update({car: self.start_time})
+      self.car_idle_frames.update({car: self.frames})
 
   def calculate_current_fitness(self, car):
     return self._fitness_calc(car)
@@ -379,12 +383,19 @@ class Game(object):
     """Updates the position of all cars with the triggered movements."""
     # Move the cars on screen
     cars_in_start_region = self.get_cars_in_region(self.start_region)
+    cars_in_finish_region = self.get_cars_in_region(self.finish_region)
+    finishes = []
     for car in self.cars:
       if not car.is_dead:
         car.move()
         self.render_car_sensor(car)
         self.kill_car_if_idle(car, car in cars_in_start_region)
         self.tracker.calculate_distances()
+      if car in cars_in_finish_region:
+        finishes.append(1)
+      else:
+        finishes.append(0)
+    self.finish_history.append(finishes)
 
   def kill_car(self, car):
     car.is_dead = True
@@ -402,9 +413,9 @@ class Game(object):
   def kill_car_if_idle(self, car, car_in_start_region):
     x_velocity, y_velocity = car.car_body.velocity
     if (x_velocity > sys.float_info.epsilon or
-            y_velocity > sys.float_info.epsilon):
-      self.car_idle_timer[car] = time.time()
-    elif time.time() - self.car_idle_timer[car] > 2:
+            y_velocity > sys.float_info.epsilon) and not car_in_start_region:
+      self.car_idle_frames[car] = self.frames
+    elif self.frames - self.car_idle_frames[car] > self.fps * 4:
       self.kill_car(car)
       car.fitness = -sys.maxsize
 
@@ -501,10 +512,10 @@ class Game(object):
 
   def run(self):
     self.clock = pygame.time.Clock()
+    self.start_time = time.time()
     pygame.font.init()
 
     round_time = time.time()
-    fps = 60
 
     while True:
       self.clock.tick()
@@ -525,12 +536,13 @@ class Game(object):
       self.render_sidebar()
 
       # Reset Game & Update Networks, if all cars are dead
-      if (all([car.is_dead for car in self.cars]) or
-              time.time() - self.start_time > 40):
+      if (all([car.is_dead for car in self.cars])):
         print('====== Finished step {}/{} in round {} in {} sec ======'.format(
-            len(self._last_fitnesses), self.AGGREGATE_MAPS, self.round, time.time() - round_time))
+            len(self._last_fitnesses), self.AGGREGATE_MAPS, self.round,
+            time.time() - round_time))
         if self.fix_map_rounds_left > 0:
-          print('Rounds left until randomization: ' + str(self.fix_map_rounds_left))
+          print('Rounds left until randomization: {}'.format(
+                self.fix_map_rounds_left))
         self.fix_map_rounds_left -= 1
         round_time = time.time()
         # Calculate fitness of cars still alive
@@ -543,10 +555,15 @@ class Game(object):
         self.fitness_history.append(fitnesses)
 
         if 0 < self.MAX_ROUNDS <= self.round:
-          print("###### EXITING BECAUSE OF ROUND LIMIT IN ROUND " + str(self.round) + "#####")
+          print('###### EXITING BECAUSE OF ROUND LIMIT IN ROUND {}'
+                ' #####'.format(self.round))
           if self.save_to:
-            with open(os.path.join(self.save_to, "fitness_history.json"), "w") as f:
+            with open(os.path.join(self.save_to, "fitness_history.json"),
+                      "w") as f:
               json.dump(self.fitness_history, f)
+            with open(os.path.join(self.save_to, "finish_history.json"),
+                      "w") as f:
+              json.dump(self.finish_history, f)
           return
 
         if len(self._last_fitnesses) == self.AGGREGATE_MAPS:
@@ -561,11 +578,12 @@ class Game(object):
             int(round(center.y + self.draw_options.offset.y))), 5)
 
       # Pymunk & Pygame calls
-      if os.environ.get("SDL_VIDEODRIVER") is None:
+      if os.environ.get('SDL_VIDEODRIVER') is None:
         self.space.debug_draw(self.draw_options)
         pygame.display.update()
-      dt = 1. / (fps)
+      dt = 1. / (self.fps)
       self.space.step(dt)
+      self.frames += 1
 
   def run_evolution(self):
     fitnesses = [0 for _ in self._last_fitnesses[0]]
