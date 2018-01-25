@@ -360,7 +360,9 @@ class EvolutionSimulator(object):
     evolution_ops = []
     sorted_networks = self.sort_by_fitness(self.networks)
     winners = sorted_networks[0:self.num_top_networks]
-    if len(sorted_networks) > 0 and winners[0].fitness < 0:
+    if (len(sorted_networks) > 0 and
+            len([n for n in self.networks if
+                 n.fitness == -sys.maxsize]) == len(self.networks)):
       # Reinitialize all networks, they all failed without any achievement
       print('Resetting all networks as they all have negative fitness!')
       for network in sorted_networks:

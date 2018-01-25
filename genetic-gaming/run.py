@@ -3,6 +3,7 @@ import json
 import subprocess
 import atexit
 import pprint
+import uuid
 
 import os
 import tensorflow as tf
@@ -394,13 +395,13 @@ class GeneticValidator(object):
 
   @staticmethod
   def validate_mutation_params(mutation_params):
-      mutation_params['c1'] = Argument('c1', float, 'Param C1')\
-          .validate(mutation_params['c1'])
-      mutation_params['c2'] = Argument('c2', float, 'Param C2')\
-          .validate(mutation_params['c2'])
-      mutation_params['c3'] = Argument('c3', float, 'Param C3')\
-          .validate(mutation_params['c3'])
-      return mutation_params
+    mutation_params['c1'] = Argument('c1', float, 'Param C1')\
+        .validate(mutation_params['c1'])
+    mutation_params['c2'] = Argument('c2', float, 'Param C2')\
+        .validate(mutation_params['c2'])
+    mutation_params['c3'] = Argument('c3', float, 'Param C3')\
+        .validate(mutation_params['c3'])
+    return mutation_params
 
 
 def get_genetic_validator(argument=None):
@@ -718,9 +719,9 @@ def load_config(parser, args=None):
   parser = general_argument_validator.add_to_argparse(parser)
   known_args = parser.parse_known_args(args)[0]
   if known_args.restore_from is not None:
-      config = restore_config(known_args)
+    config = restore_config(known_args)
   else:
-      config = load_config_and_merge_with_parser(known_args)
+    config = load_config_and_merge_with_parser(known_args)
   return general_argument_validator.validate(config), known_args.save_to
 
 
@@ -730,8 +731,8 @@ def load_genetic_config(validated_config, parser, args=None):
   parsed_args = parser.parse_args(args)
   config = merge_config_with_parser_args(validated_config, parsed_args)
   if config.get('help'):
-      parser.print_help()
-      sys.exit()
+    parser.print_help()
+    sys.exit()
   validated_config = genetic_argument_validator.validate(config)
 
   return validated_config
@@ -743,14 +744,21 @@ def run_with_args(args=None):
   validated_config, save_to = load_config(parser, args)
 
   if validated_config['model'] == 'genetic':
-      validated_config = load_genetic_config(validated_config, parser, args)
+    validated_config = load_genetic_config(validated_config, parser, args)
+
+  if validated_config['game_seed'] is None:
+    validated_config['game_seed'] = uuid.uuid4().int
+    print('Setting game_seed to {}'.format(validated_config['game_seed']))
+  if validated_config['tf_seed'] is None:
+    validated_config['tf_seed'] = uuid.uuid4().int
+    print('Setting tf_seed to {}'.format(validated_config['tf_seed']))
 
   if save_to is not None:
-      try:
-          save_data(validated_config)
-      except ValueError as e:
-          print('An error occurred while trying to save the specified'
-                'data: {}'.format(e))
+    try:
+      save_data(validated_config)
+    except ValueError as e:
+      print('An error occurred while trying to save the specified'
+            'data: {}'.format(e))
 
   print('Running with the following parameters:')
   pprint.pprint(validated_config)
@@ -766,17 +774,17 @@ def run_with_args(args=None):
 
 
 def run_multiple():
-    parser = create_arg_parse_for_multi_runner()
-    known_args = parser.parse_known_args()[0]
+  parser = create_arg_parse_for_multi_runner()
+  known_args = parser.parse_known_args()[0]
 
-    if not os.path.isdir(known_args.save_dir):
-        os.mkdir(known_args.save_dir)
+  if not os.path.isdir(known_args.save_dir):
+    os.mkdir(known_args.save_dir)
 
-    for f in os.listdir(known_args.config_dir):
-        if os.path.isfile(os.path.join(known_args.config_dir, f)):
-            run_with_args(['-config', os.path.join(known_args.config_dir, f),
-                           '-save_to', os.path.join(known_args.save_dir, f.replace('.json', ''))])
+  for f in os.listdir(known_args.config_dir):
+    if os.path.isfile(os.path.join(known_args.config_dir, f)):
+      run_with_args(['-config', os.path.join(known_args.config_dir, f),
+                     '-save_to', os.path.join(known_args.save_dir, f.replace('.json', ''))])
 
 
 if __name__ == "__main__":
-    run_with_args()
+  run_with_args()
