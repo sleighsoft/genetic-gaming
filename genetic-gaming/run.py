@@ -32,6 +32,7 @@ class ArgumentConstants(object):
       'time',
       'frames',
       'path',
+      'path_end',
       'fastest',
       'fastest_average',
       'close_to_path',

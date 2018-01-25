@@ -112,6 +112,30 @@ class BasicPathDistanceCalculator(FitnessCalculator):
     return (car.car_body.position - self._game.centers[last]).length + dist
 
 
+class BasicPathDistanceEndCalculator(BasicPathDistanceCalculator):
+  def calculate_distances(self):
+    results = [0]
+    distance = 0
+    last = self._game.centers[-1]
+
+    for center in reversed(self._game.centers[:-1]):
+      distance += (last - center).length
+      results.insert(0, distance)
+      last = center
+
+    return results
+
+  def __call__(self, car):
+    last, next = find_closest(self._centers, car.car_body.position)
+
+    if last < next:
+      last = next
+
+    dist = self._distances[last]
+
+    return -((car.car_body.position - self._game.centers[last]).length + dist)
+
+
 class CompositeCalculator(FitnessCalculator):
   def __init__(self, game, conf):
     super().__init__(game, conf)
@@ -142,6 +166,7 @@ FITNESS_CALCULATORS = {
     'time': BasicTimeCalculator,
     'frames': BasicFramesCalculator,
     'path': BasicPathDistanceCalculator,
+    'path_end': BasicPathDistanceEndCalculator,
     'fastest': BasicFastestCalculator,
     'fastest_average': BasicFastestAverageCalculator,
     'close_to_path': BasicCloseToPathCalculator,

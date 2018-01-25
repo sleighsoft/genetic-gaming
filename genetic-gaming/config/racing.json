@@ -46,7 +46,7 @@
 	},
 	"fitness_function_conf": [
 		{
-			"func": "path",
+			"func": "path_end",
 			"weight": 10
 		},
 		{
