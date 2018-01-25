@@ -35,40 +35,45 @@ class DistanceTracker(object):
 
 
 class FitnessCalculator(object):
-  def __init__(self, game, **kwargs):
+  def __init__(self, game, conf):
     self._game = game
-    self._conf = kwargs
+    self._conf = conf
 
   def __call__(self, car):
     raise NotImplementedError()
 
 
-class DistanceToStartCalculator(FitnessCalculator):
+class BasicDistanceToStartCalculator(FitnessCalculator):
   def __call__(self, car):
     return (car.car_body.position - self._game.centers[0]).length
 
 
-class DistanceToEndCalculator(FitnessCalculator):
+class BasicDistanceToEndCalculator(FitnessCalculator):
   def __call__(self, car):
     return -(car.car_body.position - self._game.centers[-1]).length
 
 
-class TimeCalculator(FitnessCalculator):
+class BasicTimeCalculator(FitnessCalculator):
   def __call__(self, car):
     return time.time() - self._game.start_time
 
 
-class FastestCalculator(FitnessCalculator):
+class BasicFramesCalculator(FitnessCalculator):
+  def __call__(self, car):
+    return self._game.frames
+
+
+class BasicFastestCalculator(FitnessCalculator):
   def __call__(self, car):
     return max(car.velocities)
 
 
-class FastestAverageCalculator(FitnessCalculator):
+class BasicFastestAverageCalculator(FitnessCalculator):
   def __call__(self, car):
     return sum(car.velocities) / len(car.velocities)
 
 
-class CloseToPathCalculator(FitnessCalculator):
+class BasicCloseToPathCalculator(FitnessCalculator):
   def __init__(self, game, **kwargs):
     super().__init__(game, **kwargs)
     self.tracker = game.tracker
@@ -78,7 +83,7 @@ class CloseToPathCalculator(FitnessCalculator):
              len(self.tracker.distances[car]))
 
 
-class PathDistanceCalculator(FitnessCalculator):
+class BasicPathDistanceCalculator(FitnessCalculator):
   def __init__(self, game, **kwargs):
     super().__init__(game, **kwargs)
     self._centers = np.asarray([[c.x, c.y] for c in game.centers])
@@ -107,29 +112,34 @@ class PathDistanceCalculator(FitnessCalculator):
     return (car.car_body.position - self._game.centers[last]).length + dist
 
 
-class MixedCalculator(FitnessCalculator):
-  def __init__(self, game, **kwargs):
-    super().__init__(game, **kwargs)
-    self._calc_a = FITNESS_CALCULATORS.get(self._conf['func_a'])(game, **kwargs)
-    self._calc_b = FITNESS_CALCULATORS.get(self._conf['func_b'])(game, **kwargs)
+class CompositeCalculator(FitnessCalculator):
+  def __init__(self, game, conf):
+    super().__init__(game, conf)
+    self._calcs = [FITNESS_CALCULATORS.get(c['func'])(game, c.get('params', None)) for c in self._conf]
 
   def __call__(self, car):
-    return (self._calc_a(car) * self._conf['weight_a']) + (self._calc_b(car) * self._conf['weight_b'])
+    return sum([calc(car) * self._conf[i]['weight'] for i, calc in enumerate(self._calcs)])
 
 
-class FastestPathCalculator(PathDistanceCalculator):
+class CompositeDivisionCalculator(CompositeCalculator):
+  def __call__(self, car):
+    return (self._calcs[0](car) * self._conf[0]['weight']) / (self._calcs[1](car) * self._conf[1]['weight'])
+
+
+class CompositeFastestPathCalculator(BasicPathDistanceCalculator):
   def __call__(self, car):
     return super().__call__(car) / (time.time() - self._game.start_time)
 
 
 FITNESS_CALCULATORS = {
-    'distance_to_start': DistanceToStartCalculator,
-    'distance_to_end': DistanceToEndCalculator,
-    'time': TimeCalculator,
-    'path': PathDistanceCalculator,
-    'fastest': FastestCalculator,
-    'fastest_average': FastestAverageCalculator,
-    'close_to_path': CloseToPathCalculator,
-    'mixed': MixedCalculator,
-    'fastest_path': FastestPathCalculator
+    'distance_to_start': BasicDistanceToStartCalculator,
+    'distance_to_end': BasicDistanceToEndCalculator,
+    'time': BasicTimeCalculator,
+    'frames': BasicFramesCalculator,
+    'path': BasicPathDistanceCalculator,
+    'fastest': BasicFastestCalculator,
+    'fastest_average': BasicFastestAverageCalculator,
+    'close_to_path': BasicCloseToPathCalculator,
+    'mixed': CompositeCalculator,
+    'divide': CompositeDivisionCalculator
 }

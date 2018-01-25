@@ -44,31 +44,48 @@
         "min_length": 100,
 		"max_length": 200
 	},
-	"fitness_function_conf": {
-		"weight_a": 1,
-		"weight_b": 10,
-		"func_a": "path",
-		"func_b": "fastest_average"
-	},
+	"fitness_function_conf": [
+		{
+			"func": "path",
+			"weight": 10
+		},
+		{
+			"func": "divide",
+			"weight": 2,
+			"params": [
+				{
+					"func": "path",
+					"weight": 1
+				},
+				{
+					"func": "frames",
+					"weight": 1
+				}
+			]
+		},
+		{
+			"func": "close_to_path",
+			"weight": 1
+		}
+	],
 	"mutation_params": {
 		"c1": 1.0,
 		"c2": 1.0,
-		"c3": 0.2,
-		"fixed": 0.8
+		"c3": 0.2
 	},
-	"mutation_rate": 0.2,
+	"mutation_rate": 0.8,
 	"evolve_bias": true,
 	"evolve_kernel": false,
 	"scope": "network",
 	"send_pixels": false,
 	"save_path": "./tmp",
-	"tf_seed": 148406467005396158076837740143378710009,
-	"game_seed": null,
+	"tf_seed": null,
+	"game_seed": 171207943139723332376316335113061966300,
 	"tf_save_model_steps": 10,
 	"single_process": true,
 	"headless": false,
-	"start_mode": "random_each",
-	"randomize_map": true,
-	"aggregate_maps": 3,
-	"fix_map_rounds": 5
+	"start_mode": "random_first",
+	"randomize_map": false,
+	"aggregate_maps": 1,
+	"fix_map_rounds": 0
 }
