@@ -135,13 +135,21 @@ class MapGenerator(object):
   def is_valid_line(self, a, b, others):
     return all(not intersect(a, b, w['start'], w['end']) for w in others)
 
+  def generate_first_segment(self, last_left, last_right, center):
+      add_vec = Vec2d(100, 0)
+      return last_left + add_vec, last_right + add_vec, center + add_vec
+
   def generate(self):
     last_left, last_right = self.get_start_points()
     last_angle = self._start_angle
     tries_left = self._max_tries
 
-    found = [self.get_wall(last_left, last_right)]
-    centers = [Vec2d(self._start_point)]
+    next_left, next_right, center = self.generate_first_segment(last_left, last_right, Vec2d(self._start_point))
+    found = [self.get_wall(last_left, last_right),
+             self.get_wall(last_left, next_left), self.get_wall(last_right, next_right)]
+    last_left = next_left
+    last_right = next_right
+    centers = [Vec2d(self._start_point), center]
     while tries_left > 0:
       next_left, next_right, angle, center = self.get_next_endings(
           last_left, last_right, last_angle)

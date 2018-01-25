@@ -50,20 +50,6 @@
 			"weight": 10
 		},
 		{
-			"func": "divide",
-			"weight": 2,
-			"params": [
-				{
-					"func": "path",
-					"weight": 1
-				},
-				{
-					"func": "frames",
-					"weight": 1
-				}
-			]
-		},
-		{
 			"func": "close_to_path",
 			"weight": 1
 		}

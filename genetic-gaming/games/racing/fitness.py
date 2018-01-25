@@ -152,7 +152,7 @@ class CompositeDivisionCalculator(CompositeCalculator):
 
 class CompositeMultiplicationCalculator(CompositeCalculator):
   def __call__(self, car):
-    return (self._calcs[0](car) * self._conf[0]['weight']) / (self._calcs[1](car) * self._conf[1]['weight'])
+    return (self._calcs[0](car) * self._conf[0]['weight']) * (self._calcs[1](car) * self._conf[1]['weight'])
 
 
 class CompositeFastestPathCalculator(BasicPathDistanceCalculator):
