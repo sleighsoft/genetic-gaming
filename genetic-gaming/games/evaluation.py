@@ -1,39 +1,49 @@
+import multiprocessing
 import subprocess
+import sys
 from time import gmtime, strftime
 
 # Fixed Parameters
-MAX_ROUNDS = 500
+PARALLELIZE = False
+PROCESSES = 1
+MAX_ROUNDS = 1
 NUM_NETWORKS = 10
-MAP_SEED = 171207943139723332376316335113061966300
+MAP_SEED = 171207943139723332376316335113061966300  # TODO: Where to apply?
 
 COMMAND_TEMPLATE_BASE = "python genetic-gaming/run.py -config genetic-gaming/config/racing.json " \
                         "-headless " \
-                        "-save_to {save_to}"
+                        "-max_rounds " + str(MAX_ROUNDS) + " " \
+                                                           "-num_networks " + str(NUM_NETWORKS) + " " \
+                                                                                                  "-game_seed " + str(
+  MAP_SEED) + " " \
+              "-save_to {save_to}"
 
 COMMAND_TEMPLATE_EXTENDED = COMMAND_TEMPLATE_BASE + "" \
                                                     "-game_seed {map_seed} " \
                                                     "-max_rounds {max_rounds} " \
                                                     "-mutation_rate {mutation_rate} " \
                                                     "-num_networks {num_networks} " \
-                                                    "-randomize_map {randomize_map} " \
                                                     "-fix_map_rounds {fix_map_rounds} " \
                                                     "-aggregate_maps {aggregate_maps} "
 
 
-def worker(command):
-  process = subprocess.Popen(command.split(' '), stdout=subprocess.PIPE)
+def worker(cmd):
+  process = subprocess.Popen(cmd.split(' '), stdout=subprocess.PIPE)
   out, _ = process.communicate()
   return out
 
 
 if __name__ == '__main__':
+  args = sys.argv
+  if '-parallel' in args:
+    PARALLELIZE = True
+  print("Running in parallel" if PARALLELIZE else "Running sequentially")
   print("Max Rounds: {}".format(MAX_ROUNDS))
   print("Num networks: {}".format(NUM_NETWORKS))
   print("----------------")
   save_to = strftime("%d-%b-%Y_%H:%M:%S", gmtime())
   save_to += "rounds_{max_rounds}_num_networks_{num_networks}".format(max_rounds=MAX_ROUNDS, num_networks=NUM_NETWORKS)
   print("Save Directory: {}...".format(save_to))
-  PROCESSES = 5
 
   commands = []
 
@@ -43,15 +53,14 @@ if __name__ == '__main__':
   command = COMMAND_TEMPLATE_BASE.format(save_to=save_to_test_1) + " -mutation_rate {mutation_rate}".format(**params)
   commands.append(command)
 
-  # Test 2: Vary map TODO: what other parameter to hand over?
-  # Mutation Rates: [0.8]
+  # Test 2: Vary map
   params = {"mutation_rate": 0.8}
   save_to_test_2 = save_to + "test2_mutation_rate_{mutation_rate}".format(**params)
-  command = COMMAND_TEMPLATE_BASE.format(save_to=save_to_test_2) + " -mutation_rate {mutation_rate}".format(**params)
+  command = COMMAND_TEMPLATE_BASE.format(
+    save_to=save_to_test_2) + " -mutation_rate {mutation_rate} -randomize_map".format(**params)
   commands.append(command)
 
   # Test 3: Vary map + aggregate over 5 maps
-  # Mutation Rates: [0.8]
   params = {"mutation_rate": 0.8, "aggregate_maps": 5}
   save_to_test_3 = save_to + "test3_mutation_rate_{mutation_rate}_aggregate_maps_{aggregate_maps}".format(**params)
   command = COMMAND_TEMPLATE_BASE.format(
@@ -59,16 +68,15 @@ if __name__ == '__main__':
   commands.append(command)
 
   # Test 4: Vary Map
-  params = {'randomize_map': True, 'aggregate_maps': 1, 'fix_map_rounds': 50}
-  save_to_test_4 = save_to + "test4_aggregate_maps_{aggregate_maps}_randomize_map_{randomize_map}" \
+  params = {'aggregate_maps': 1, 'fix_map_rounds': 50}
+  save_to_test_4 = save_to + "test4_aggregate_maps_{aggregate_maps}_randomize_map" \
                              "_fix_map_rounds_{fix_map_rounds}".format(**params)
   command = COMMAND_TEMPLATE_BASE.format(
-    save_to=save_to_test_4) + " -randomize_map {randomize_map} -aggregate_maps {aggregate_maps} -fix_map_rounds {fix_map_rounds}".format(
+    save_to=save_to_test_4) + " -randomize_map -aggregate_maps {aggregate_maps} -fix_map_rounds {fix_map_rounds}".format(
     **params)
   commands.append(command)
 
   # Test 5: Vary Mutation Rates
-  params = {'randomize_map': False}
   MUTATION_MAX = 1
   mutation_rates = [x / 10 for x in range(0, int(MUTATION_MAX * 10))]
 
@@ -90,8 +98,13 @@ if __name__ == '__main__':
 
   for c in commands:
     print(c)
-    # pool = multiprocessing.Pool(processes=PROCESSES)
-    # pool_outputs = pool.map(worker, commands)
-    # pool.close()
-    # pool.join()
-    # print('Pool:', pool_outputs)
+    if PARALLELIZE:
+      pool = multiprocessing.Pool(processes=PROCESSES)
+      pool_outputs = pool.map(worker, commands)
+      pool.close()
+      pool.join()
+      print('Pool:', pool_outputs)
+    else:
+      process = subprocess.Popen(c.split(' '), stdout=subprocess.PIPE)
+      out, _ = process.communicate()
+      print(out)
