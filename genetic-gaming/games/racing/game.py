@@ -368,15 +368,16 @@ class Game(object):
     if not self.manual:
       movements = self.predict()
       for movement, car in zip(movements, self.cars):
-        if movement[0] > 0.5 and movement[1] <= 0.5:
-          car.trigger_rotate_right()
-          car.last_right_turn = movement[0]
-        if movement[1] > 0.5 and movement[0] <= 0.5:
-          car.trigger_rotate_left()
-          car.last_left_turn = movement[1]
-        if movement[2] > 0.5:
-          car.trigger_acceleration()
-          car.last_acceleration = movement[2]
+        if not car.is_dead:
+          if movement[0] > 0.5 and movement[1] <= 0.5:
+            car.trigger_rotate_right()
+            car.last_right_turn = movement[0]
+          if movement[1] > 0.5 and movement[0] <= 0.5:
+            car.trigger_rotate_left()
+            car.last_left_turn = movement[1]
+          if movement[2] > 0.5:
+            car.trigger_acceleration()
+            car.last_acceleration = movement[2]
     else:
       self.manual_controls()
 
@@ -401,7 +402,9 @@ class Game(object):
   def kill_car(self, car):
     car.is_dead = True
     car.fitness = self.calculate_current_fitness(car)
-    car.remove_from_space()
+    car.car_shape.color = (205, 206, 214)
+    car.car_body.velocity = pymunk.Vec2d(0, 0)
+    # car.remove_from_space()
 
   def get_cars_in_region(self, region):
     query_shapes = [q.shape for q in self.space.shape_query(region)]
