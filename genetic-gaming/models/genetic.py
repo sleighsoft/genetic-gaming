@@ -376,7 +376,7 @@ class EvolutionSimulator(object):
               network, winners[0], winners[1], self.evolve_bias,
               self.evolve_kernel)
           evolution_ops += ops
-        elif i < len(sorted_networks[self.num_top_networks:]) - 2:
+        elif i < len(sorted_networks[self.num_top_networks:]) - 4:
           # Network#num_top_networks+1 to Network#-2 = Crossover of 2 random
           # winners
           parentA = random.choice(winners)
@@ -587,7 +587,7 @@ class EvolutionSimulator(object):
       apply to the `Tensor`.
     """
     shape = tf.shape(variable)
-    return (variable * (1 + (tf.random_normal(shape) - 0.5) * 3 +
+    return (variable + (1 + (tf.random_normal(shape) - 0.5) * 3 +
                         tf.random_normal(shape) - 0.5))
 
   # def get_best_network(networks):

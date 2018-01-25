@@ -142,12 +142,13 @@ class Game(object):
       car = car_impl.Car(shape=(15, 10),
                          position=(start_x, start_y),
                          rotation=0.0,
-                         rotation_speed=0.05,
+                         rotation_speed=math.pi * 0.05,
                          base_velocity=5.0,
-                         acceleration=1.1,
+                         acceleration=100.0,
                          deceleration=0.8,
                          acceleration_time=20,
                          max_velocity=100,
+                         min_velocity=10,
                          color=car_color,
                          sensor_range=100,
                          num_sensors=self.NUM_CAR_SENSORS)
@@ -368,15 +369,18 @@ class Game(object):
     if not self.manual:
       movements = self.predict()
       for movement, car in zip(movements, self.cars):
-        if movement[0] > 0.5 and movement[1] <= 0.5:
-          car.trigger_rotate_right()
-          car.last_right_turn = movement[0]
-        if movement[1] > 0.5 and movement[0] <= 0.5:
-          car.trigger_rotate_left()
-          car.last_left_turn = movement[1]
-        if movement[2] > 0.5:
-          car.trigger_acceleration()
-          car.last_acceleration = movement[2]
+        car.trigger_rotation(movement[0])
+        car.last_right_turn = movement[0]
+        car.trigger_acceleration(movement[2])
+        # if movement[0] > 0.5 and movement[1] <= 0.5:
+        #   car.trigger_rotate_right()
+        #   car.last_right_turn = movement[0]
+        # if movement[1] > 0.5 and movement[0] <= 0.5:
+        #   car.trigger_rotate_left()
+        #   car.last_left_turn = movement[1]
+        # if movement[2] > 0.5:
+        #   car.trigger_acceleration()
+        car.last_acceleration = movement[2]
     else:
       self.manual_controls()
 
