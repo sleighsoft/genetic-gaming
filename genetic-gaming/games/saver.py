@@ -15,7 +15,7 @@ def save_data(args):
     for index, layer_config in enumerate(data['args']['network_shape']):
         data['args']['network_shape'][index]['activation'] = data['args']['network_shape'][index]['activation'].__name__
     if not os.path.isdir(save_dir):
-        os.mkdir(save_dir)
+        os.makedirs(save_dir)
     with open(os.path.join(save_dir, "data.json"), 'w+') as f:
         f.write(json.dumps(data, sort_keys=True,
                            indent=4, separators=(',', ': ')))

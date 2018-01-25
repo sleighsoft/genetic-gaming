@@ -43,10 +43,9 @@ class Game(object):
     self.fps = 60
     self.STEPPING = args['stepping']
     self.MAP_GENERATOR = args.get('map_generator', 'random')
-    self.GAME_SEED = args.get('game_seed', None)
-    self.current_seed = self.GAME_SEED or uuid.uuid4().int
-    if self.GAME_SEED is not None:
-      np.random.seed(self.GAME_SEED // 2**96)
+    self.GAME_SEED = args['game_seed']
+    self.current_seed = self.GAME_SEED
+    np.random.seed(self.current_seed // 2**96)
     self.FITNESS_MODE = args.get('fitness_mode', 'distance_to_start')
     self.FITNESS_CONF = args.get('fitness_function_conf', {})
     self.SCREEN_RESIZE_SHAPE = args.get('screen_resize_shape', None)
@@ -113,6 +112,8 @@ class Game(object):
     self.init_fitness(self.FITNESS_MODE)
 
     # Dynamic
+    self._last_best_car = None
+    self._last_best_fitness = None
     self._camera_car = None
     self.reset(no_map_reset=True)
     self.round = self.SIMULATOR.current_step
@@ -456,6 +457,15 @@ class Game(object):
             -1,
             (0, 0, 0)),
         (x_position, 20))
+    if self._last_best_car is not None:
+      self.screen.blit(
+          font.render(
+              str('Best:        {:.2f}'.format(self._last_best_fitness)),
+              -1,
+              (0, 0, 0)),
+          (x_position + 80, 20))
+      pygame.draw.rect(self.screen, self._last_best_car._color,
+                       pygame.Rect(x_position + 110, 20 + 5, 15, 10))
     bar_length = 180
     i = 0
     for car in self.cars:
@@ -606,6 +616,8 @@ class Game(object):
 
   def store_fitnesses(self):
     fitnesses = [car.fitness for car in self.cars]
+    self._last_best_car = max(self.cars, key=lambda car: car.fitness)
+    self._last_best_fitness = self._last_best_car.fitness
     if len(self._last_fitnesses) == self.AGGREGATE_MAPS:
       self._last_fitnesses.pop(0)
     self._last_fitnesses.append(fitnesses)

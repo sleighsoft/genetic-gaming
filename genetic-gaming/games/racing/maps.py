@@ -57,8 +57,6 @@ class MapGenerator(object):
                game_width, max_angle, seed, min_angle=0, start_point=None,
                start_angle=45, start_width=300,  max_tries=10):
     random.seed(seed)
-
-    print('Map seed: {}'.format(seed))
     self._min_width = min_width
     self._max_width = max_width
     self._max_angle = max_angle
