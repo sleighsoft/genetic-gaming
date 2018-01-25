@@ -30,12 +30,14 @@ class ArgumentConstants(object):
       'distance_to_start',
       'distance_to_end',
       'time',
+      'frames',
       'path',
       'fastest',
       'fastest_average',
       'close_to_path',
-      'mixed',
-      'fastest_path'
+      'composite',
+      'divide',
+      'multiply'
   ]
   START_MODES = [
       'fixed',
@@ -383,14 +385,7 @@ class GeneticValidator(object):
 
   @staticmethod
   def validate_fitness_conf(fitness_conf):
-    fitness_conf['func_a'] = Argument('func_a', str, 'Fitness function A')\
-        .validate(fitness_conf['func_a'])
-    fitness_conf['func_b'] = Argument('func_b', str, 'Fitness function B')\
-        .validate(fitness_conf['func_b'])
-    fitness_conf['weight_a'] = Argument('weight_a', int, 'Weight for function A')\
-        .validate(fitness_conf['weight_a'])
-    fitness_conf['weight_b'] = Argument('weight_b', int, 'Weight for function B')\
-        .validate(fitness_conf['weight_b'])
+    # Todo: Reimplement validation
     return fitness_conf
 
   @staticmethod
@@ -537,7 +532,7 @@ def get_genetic_validator(argument=None):
   )
   argument.register_parameter(
       'fitness_function_conf',
-      dict,
+      list,
       'A dictionary containing configuration options for the fitness function',
       function=GeneticValidator.validate_fitness_conf,
       disable_to_argparse=True

@@ -74,8 +74,8 @@ class BasicFastestAverageCalculator(FitnessCalculator):
 
 
 class BasicCloseToPathCalculator(FitnessCalculator):
-  def __init__(self, game, **kwargs):
-    super().__init__(game, **kwargs)
+  def __init__(self, game, conf):
+    super().__init__(game, conf)
     self.tracker = game.tracker
 
   def __call__(self, car):
@@ -84,8 +84,8 @@ class BasicCloseToPathCalculator(FitnessCalculator):
 
 
 class BasicPathDistanceCalculator(FitnessCalculator):
-  def __init__(self, game, **kwargs):
-    super().__init__(game, **kwargs)
+  def __init__(self, game, conf):
+    super().__init__(game, conf)
     self._centers = np.asarray([[c.x, c.y] for c in game.centers])
     self._distances = self.calculate_distances()
 
@@ -125,6 +125,10 @@ class CompositeDivisionCalculator(CompositeCalculator):
   def __call__(self, car):
     return (self._calcs[0](car) * self._conf[0]['weight']) / (self._calcs[1](car) * self._conf[1]['weight'])
 
+class CompositeMultiplicationCalculator(CompositeCalculator):
+  def __call__(self, car):
+    return (self._calcs[0](car) * self._conf[0]['weight']) / (self._calcs[1](car) * self._conf[1]['weight'])
+
 
 class CompositeFastestPathCalculator(BasicPathDistanceCalculator):
   def __call__(self, car):
@@ -140,6 +144,7 @@ FITNESS_CALCULATORS = {
     'fastest': BasicFastestCalculator,
     'fastest_average': BasicFastestAverageCalculator,
     'close_to_path': BasicCloseToPathCalculator,
-    'mixed': CompositeCalculator,
-    'divide': CompositeDivisionCalculator
+    'composite': CompositeCalculator,
+    'divide': CompositeDivisionCalculator,
+    'multiply': CompositeMultiplicationCalculator
 }
