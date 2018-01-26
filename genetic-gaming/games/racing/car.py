@@ -131,7 +131,7 @@ class Car(object):
         if min_distance is None or distance < min_distance:
           min_distance = distance
           end = impact
-      distances.append(min_distance)
+      distances.append(min_distance/self._sensor_range)
       points_of_impact.append(end)
 
     if screen:
@@ -139,16 +139,15 @@ class Car(object):
 
     return distances
 
-  def trigger_rotate_left(self):
-    self.rotation -= self._rotation_speed
+  # def trigger_rotate_left(self):
+  #   self.rotation -= self._rotation_speed
 
-  def trigger_rotate_right(self):
-    self.rotation += self._rotation_speed
+  # def trigger_rotate_right(self):
+  #   self.rotation += self._rotation_speed
 
   def trigger_rotation(self, rotat_value):
     rotat_value -= 0.5
-    if abs(rotat_value) > 0.05:
-      self.rotation += self._rotation_speed * rotat_value
+    self.rotation += self._rotation_speed * rotat_value
 
   def trigger_acceleration(self, acceleration_value):
     acceleration_value -= 0.5

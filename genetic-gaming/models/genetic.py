@@ -437,16 +437,10 @@ class EvolutionSimulator(object):
           len(bias_scope1), len(bias_crossover))
       crossover_point = random.randint(0, len(bias_scope1) - 1)
       for i in range(len(bias_crossover)):
-        if i < crossover_point:
-          crossover_ops1.append(
-              tf.assign(bias_crossover[i], bias_scope1[i]))
-          crossover_ops2.append(
-              tf.assign(bias_crossover[i], bias_scope2[i]))
+        if i % 2 == 0:
+          crossover_ops1.append(tf.assign(bias_crossover[i], bias_scope1[i]))
         else:
-          crossover_ops1.append(
-              tf.assign(bias_crossover[i], bias_scope2[i]))
-          crossover_ops2.append(
-              tf.assign(bias_crossover[i], bias_scope1[i]))
+          crossover_ops1.append(tf.assign(bias_crossover[i], bias_scope2[i]))
     if kernel:
       kernel_scope1 = network1.trainable_kernel()
       kernel_scope2 = network2.trainable_kernel()
@@ -461,20 +455,14 @@ class EvolutionSimulator(object):
           len(kernel_scope1), len(kernel_crossover))
       crossover_point = random.randint(0, len(kernel_scope1) - 1)
       for i in range(len(kernel_crossover)):
-        if i < crossover_point:
-          crossover_ops1.append(
-              tf.assign(kernel_crossover[i], kernel_scope1[i]))
-          crossover_ops2.append(
-              tf.assign(kernel_crossover[i], kernel_scope2[i]))
+        if i % 2 == 0:
+          crossover_ops1.append(tf.assign(kernel_crossover[i], kernel_scope1[i]))
         else:
-          crossover_ops1.append(
-              tf.assign(kernel_crossover[i], kernel_scope2[i]))
-          crossover_ops2.append(
-              tf.assign(kernel_crossover[i], kernel_scope1[i]))
+          crossover_ops1.append(tf.assign(kernel_crossover[i], kernel_scope2[i]))
 
     # Select either A|B or B|A where | indicates the crossover point
     crossover_ops = self.choose_random(crossover_ops1, crossover_ops2)
-    return crossover_ops
+    return crossover_ops1
 
   def _perform_weighted_crossover(self, crossover_network, network1, network2, bias,
                                   kernel):
@@ -587,8 +575,9 @@ class EvolutionSimulator(object):
       apply to the `Tensor`.
     """
     shape = tf.shape(variable)
-    return (variable + (1 + (tf.random_normal(shape) - 0.5) * 3 +
-                        tf.random_normal(shape) - 0.5))
+    # return (variable + (1 + (tf.random_normal(shape) - 0.5) * 3 +
+                        # tf.random_normal(shape) - 0.5))
+    return variable + tf.random_uniform(shape) * 0.6 - 0.3
 
   # def get_best_network(networks):
   #   return max(networks, key=lambda x: x.fitness)

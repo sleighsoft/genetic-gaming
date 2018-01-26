@@ -93,7 +93,7 @@ class Game(object):
     wall_coll_handler.begin = collision_handler
 
     self.X_START = 50
-    self.Y_START = 65
+    self.Y_START = self.GAME_HEIGHT / 2
     self.Y_RANDOM_RANGE = 20
 
     # Game vars
@@ -147,7 +147,7 @@ class Game(object):
                          acceleration=100.0,
                          deceleration=0.8,
                          acceleration_time=20,
-                         max_velocity=100,
+                         max_velocity=200,
                          min_velocity=10,
                          color=car_color,
                          sensor_range=100,
@@ -371,7 +371,7 @@ class Game(object):
       for movement, car in zip(movements, self.cars):
         car.trigger_rotation(movement[0])
         car.last_right_turn = movement[0]
-        car.trigger_acceleration(movement[2])
+        car.trigger_acceleration(movement[1])
         # if movement[0] > 0.5 and movement[1] <= 0.5:
         #   car.trigger_rotate_right()
         #   car.last_right_turn = movement[0]
@@ -380,7 +380,7 @@ class Game(object):
         #   car.last_left_turn = movement[1]
         # if movement[2] > 0.5:
         #   car.trigger_acceleration()
-        car.last_acceleration = movement[2]
+        car.last_acceleration = movement[1]
     else:
       self.manual_controls()
 
@@ -470,7 +470,7 @@ class Game(object):
           (x_position + 80, 20))
       pygame.draw.rect(self.screen, self._last_best_car._color,
                        pygame.Rect(x_position + 110, 20 + 5, 15, 10))
-    bar_length = 180
+    bar_length = 150
     i = 0
     for car in self.cars:
       if not car.is_dead:
@@ -499,20 +499,21 @@ class Game(object):
         # Right turn
         x_bar = x_position + 70
         x_text = x_position + 55
-        self.screen.blit(font.render('R:', -1, (0, 0, 0)),
+        label = 'L:' if car.last_right_turn < 0.5 else 'R:'
+        self.screen.blit(font.render(label, -1, (0, 0, 0)),
                          (x_text, y_position))
         create_move_bar(car.last_right_turn, x_bar,
                         y, bar_width, bar_max_height)
         # Left turn
         x_bar = x_position + 110
         x_text = x_position + 95
-        self.screen.blit(font.render('L:', -1, (0, 0, 0)),
-                         (x_text, y_position))
-        create_move_bar(car.last_left_turn, x_bar,
-                        y, bar_width, bar_max_height)
+        # self.screen.blit(font.render('L:', -1, (0, 0, 0)),
+        #                  (x_text, y_position))
+        # create_move_bar(car.last_left_turn, x_bar,
+        #                 y, bar_width, bar_max_height)
         # Acceleration turn
-        x_bar = x_position + 150
-        x_text = x_position + 135
+        # x_bar = x_position + 150
+        # x_text = x_position + 135
         self.screen.blit(font.render('A:', -1, (0, 0, 0)),
                          (x_text, y_position))
         create_move_bar(car.last_acceleration, x_bar,

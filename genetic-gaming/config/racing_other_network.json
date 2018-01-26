@@ -9,11 +9,25 @@
 	"num_networks": 20,
 	"num_top_networks": 4,
 	"racing_game": {
-		"velocity_as_input": false,
+		"velocity_as_input": true,
 		"num_car_sensors": 5
 	},
-	"network_input_shape": 5,
+	"network_input_shape": 7,
 	"network_shape": [
+		{
+			"activation": "sigmoid",
+			"shape": 7,
+			"kernel_initializer": null,
+			"bias_initializer": null,
+			"use_bias": true
+		},
+		{
+			"activation": "sigmoid",
+			"shape": 8,
+			"kernel_initializer": null,
+			"bias_initializer": null,
+			"use_bias": true
+		},
 		{
 			"activation": "sigmoid",
 			"shape": 5,
@@ -23,14 +37,7 @@
 		},
 		{
 			"activation": "sigmoid",
-			"shape": 100,
-			"kernel_initializer": null,
-			"bias_initializer": null,
-			"use_bias": true
-		},
-		{
-			"activation": "sigmoid",
-			"shape": 3,
+			"shape": 2,
 			"kernel_initializer": null,
 			"bias_initializer": null,
 			"use_bias": true
@@ -39,18 +46,14 @@
 	"map_generator_conf": {
         "min_width": 40,
 		"max_width": 70,
-        "min_angle": 0.31415,
-		"max_angle": 0.9424,
+        "min_angle": 0.0,
+		"max_angle": 0.6,
         "min_length": 100,
 		"max_length": 200
 	},
 	"fitness_function_conf": [
 		{
-			"func": "path_end",
-			"weight": 10
-		},
-		{
-			"func": "close_to_path",
+			"func": "path",
 			"weight": 1
 		}
 	],
@@ -66,7 +69,7 @@
 	"send_pixels": false,
 	"save_path": "./tmp",
 	"tf_seed": null,
-	"game_seed": 171207943139723332376316335113061966300,
+	"game_seed": 211968443806815064794847048489042436977,
 	"tf_save_model_steps": 10,
 	"single_process": true,
 	"headless": false,
