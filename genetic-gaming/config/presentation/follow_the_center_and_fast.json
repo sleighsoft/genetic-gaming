@@ -42,13 +42,27 @@
         "min_length": 100,
 		"max_length": 200
 	},
-	"fitness_mode": "mixed",
-	"fitness_function_conf": {
-		"weight_a": 1,
-		"weight_b": 100,
-		"func_a": "close_to_path",
-		"func_b": "fastest_path"
-	},
+	"fitness_mode": "composite",
+	"fitness_function_conf": [
+        {
+            "func": "divide",
+            "weight": 100,
+            "params": [
+                {
+                    "func": "path",
+                    "weight": 1
+                },
+                {
+                    "func": "frames",
+                    "weight": 1
+                }
+            ]
+        },
+        {
+            "func": "close_to_path",
+            "weight": 1
+        }
+    ],
 	"mutation_params": {
 		"c1": 1.0,
 		"c2": 1.0,

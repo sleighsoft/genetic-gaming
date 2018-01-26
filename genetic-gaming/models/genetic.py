@@ -117,9 +117,10 @@ class EvolutionSimulator(object):
     # Implementation of https://blog.openai.com/evolution-strategies/
     self.sigma = 0.2
     self.alpha = 0.7
-    self.parent_network = Network(input_shape, network_shape,
-                                  scope='parent_network')
-    self.N = None
+    if self.weighted_crossover_evolve:
+      self.parent_network = Network(input_shape, network_shape,
+                                    scope='parent_network')
+      self.N = None
     # End Implementation
 
     # Init networks
@@ -577,7 +578,7 @@ class EvolutionSimulator(object):
 
   @staticmethod
   def _mutate(variable):
-    """Mutates a `Tensor`self.
+    """Mutates a `Tensor`.
 
     Args:
       variable: The variable to mutate.

@@ -2,7 +2,6 @@ import argparse
 import sys
 import os
 import math
-import uuid
 
 import msgpackrpc
 import numpy as np
@@ -404,7 +403,6 @@ class Game(object):
     car.fitness = self.calculate_current_fitness(car)
     car.car_shape.color = (205, 206, 214)
     car.car_body.velocity = pymunk.Vec2d(0, 0)
-    # car.remove_from_space()
 
   def get_cars_in_region(self, region):
     query_shapes = [q.shape for q in self.space.shape_query(region)]
