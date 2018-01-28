@@ -486,7 +486,8 @@ class Game(object):
           bar_color = (183, 18, 43) if probability > 0 else (66, 244, 69)
           max_height = max_height / 2
           y += max_height
-          bar_height = max_height * probability
+          # -2 so it does not overlap with the horizontal lines
+          bar_height = (max_height - 2) * probability
           bar_rect = pygame.Rect(x, y, width, bar_height)
           pygame.draw.rect(self.screen, bar_color, bar_rect)
 

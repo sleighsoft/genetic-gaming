@@ -14,6 +14,7 @@ class Network(object):
 
   def __init__(self, input_shape, network_shape, scope):
     self.scope = scope
+    self.initializer = tf.random_uniform_initializer(minval=-0.5, maxval=0.5)
     self.graph = self.build(input_shape, network_shape)
     self.fitness = 0
 
@@ -21,7 +22,7 @@ class Network(object):
     return session.run(self.graph, feed_dict={self.input: x})
 
   def build(self, input_shape, network_shape):
-    with tf.variable_scope(self.scope) as scope:
+    with tf.variable_scope(self.scope, initializer=self.initializer) as scope:
       self.scope = scope
       layer = tf.placeholder(tf.float32, shape=(None, input_shape),
                              name='input')
@@ -413,31 +414,6 @@ class EvolutionSimulator(object):
               network, self.evolve_bias, self.evolve_kernel)
           evolution_ops += ops
 
-      # Mimics implemenation of evolution of https://github.com/TomaszRewak/ML-games
-      # def sample_network(networks, not_this=None):
-      #   sample_size = 5
-      #   samples = []
-      #   while len(samples) < sample_size:
-      #     choice = random.choice(networks)
-      #     while choice in samples or choice == not_this:
-      #       choice = random.choice(networks)
-      #     samples.append(choice)
-      #   best = max(samples, key=lambda x: x.fitness)
-      #   return best
-
-      # evolution_ops = []
-      # crossover_rate = 0.5
-      # for network in self.networks:
-      #   sample = sample_network(self.networks)
-      #   if random.random() < crossover_rate:
-      #     sample2 = sample_network(self.networks, sample)
-      #     ops = self._perform_crossover(network, sample, sample2, self.evolve_bias, self.evolve_kernel)
-      #     evolution_ops += ops
-      #   with tf.control_dependencies(evolution_ops):
-      #     ops = self._perform_mutation(
-      #         network, self.evolve_bias, self.evolve_kernel)
-      #     evolution_ops += ops
-
     return evolution_ops
 
   @staticmethod
@@ -565,9 +541,7 @@ class EvolutionSimulator(object):
     mutation_rate = self.get_mut_rate()
     shape = tf.shape(variable)
     mask = tf.to_float(tf.random_uniform(shape) < mutation_rate)
-    # mutation = tf.random_uniform(shape) * 0.2 - 0.1
-    mutation = (1 + (tf.random_normal(shape) - 0.5) *
-                3 + tf.random_normal(shape) - 0.5)
+    mutation = tf.random_uniform(shape) * 0.2 - 0.1
     return variable + mask * mutation
 
   @staticmethod
