@@ -50,7 +50,8 @@ class ArgumentConstants(object):
 class TFMappings(object):
   ACTIVATIONS = {
       'sigmoid': tf.sigmoid,
-      'relu': tf.nn.relu
+      'relu': tf.nn.relu,
+      'tanh': tf.tanh
   }
   INITIALIZER = {
       'zeros': tf.zeros_initializer,
@@ -424,9 +425,16 @@ def get_genetic_validator(argument=None):
       int,
       'Number of networks to use')
   argument.register_parameter(
-      'num_top_networks',
+      'num_top_networks_to_keep',
       int,
-      'Number of best networks to select from current generation')
+      'Number of best networks to keep unchanged during evolution')
+  argument.register_parameter(
+      'num_top_networks_to_mutate',
+      int,
+      'Number of best networks to mutate during evolution. They will be'
+      ' randomly sampled from `num_top_networks_to_keep`. The remaining'
+      ' networks will be crossovered'
+      ' num_networks - num_top_networks_to_keep - num_top_networks_to_mutate')
   argument.register_parameter(
       'network_input_shape',
       int,
@@ -591,7 +599,8 @@ def _run_genetic(args):
       args['network_input_shape'],
       args['network_shape'],
       args['num_networks'],
-      args['num_top_networks'],
+      args['num_top_networks_to_keep'],
+      args['num_top_networks_to_mutate'],
       args['mutation_rate'],
       args['evolve_bias'],
       args['evolve_kernel'],
