@@ -4,9 +4,9 @@ import sys
 from time import gmtime, strftime
 
 # Fixed Parameters
-PARALLELIZE = False
-PROCESSES = 1
-MAX_ROUNDS = 1
+PARALLELIZE = True
+PROCESSES = 5
+MAX_ROUNDS = 200
 NUM_NETWORKS = 10
 MAP_SEED = 171207943139723332376316335113061966300  # TODO: Where to apply?
 
@@ -51,7 +51,7 @@ if __name__ == '__main__':
   params = {"mutation_rate": 0.8}
   save_to_test_1 = save_to + "test1_mutation_rate_{mutation_rate}".format(**params)
   command = COMMAND_TEMPLATE_BASE.format(save_to=save_to_test_1) + " -mutation_rate {mutation_rate}".format(**params)
-  commands.append(command)
+  #commands.append(command)
 
   # Test 2: Vary map
   params = {"mutation_rate": 0.8}
@@ -65,7 +65,7 @@ if __name__ == '__main__':
   save_to_test_3 = save_to + "test3_mutation_rate_{mutation_rate}_aggregate_maps_{aggregate_maps}".format(**params)
   command = COMMAND_TEMPLATE_BASE.format(
     save_to=save_to_test_3) + " -mutation_rate {mutation_rate} -aggregate_maps {aggregate_maps}".format(**params)
-  commands.append(command)
+  #commands.append(command)
 
   # Test 4: Vary Map
   params = {'aggregate_maps': 1, 'fix_map_rounds': 50}
@@ -74,7 +74,7 @@ if __name__ == '__main__':
   command = COMMAND_TEMPLATE_BASE.format(
     save_to=save_to_test_4) + " -randomize_map -aggregate_maps {aggregate_maps} -fix_map_rounds {fix_map_rounds}".format(
     **params)
-  commands.append(command)
+  #commands.append(command)
 
   # Test 5: Vary Mutation Rates
   MUTATION_MAX = 1
@@ -88,7 +88,7 @@ if __name__ == '__main__':
     command = COMMAND_TEMPLATE_BASE.format(
       save_to=save_to_test_4) + " -max_rounds {max_rounds} -mutation_rate {mutation_rate} -num_networks {num_networks}".format(
       **params)
-    commands.append(command)
+    #commands.append(command)
 
   # Test 6: Dynamic Mutation Rate
   # no mutation rate parameter
