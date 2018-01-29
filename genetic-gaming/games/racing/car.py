@@ -156,7 +156,7 @@ class Car(object):
     """Perform all triggered movements."""
     driving_direction = Vec2d(1, 0).rotated(self.rotation)
     self.car_body.angle = self.rotation
-    self.car_body.apply_force_at_local_point(self._velocity * driving_direction, driving_direction)
+    self.car_body.apply_force_at_world_point(self._velocity * driving_direction, self.car_body.position)
     self.velocities.append(self._velocity)
 
   @staticmethod
