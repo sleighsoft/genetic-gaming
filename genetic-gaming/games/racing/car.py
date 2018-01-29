@@ -148,15 +148,16 @@ class Car(object):
     self.rotation += self._rotation_speed * value
 
   def trigger_acceleration(self, value):
-    actual_velocity = self._velocity + (self._acceleration * value)
-    self._velocity = max(self._min_velocity, min(
-        self._max_velocity, actual_velocity))
+    self._velocity = self._acceleration * value
+    # actual_velocity = self._velocity + (self._acceleration * value)
+    # self._velocity = max(self._min_velocity, min(
+    #     self._max_velocity, actual_velocity))
 
   def move(self):
     """Perform all triggered movements."""
     driving_direction = Vec2d(1, 0).rotated(self.rotation)
     self.car_body.angle = self.rotation
-    self.car_body.apply_force_at_world_point(self._velocity * driving_direction, self.car_body.position)
+    self.car_body.apply_force_at_local_point(self._velocity * driving_direction, (0.0, 0.0))
     self.velocities.append(self._velocity)
 
   @staticmethod

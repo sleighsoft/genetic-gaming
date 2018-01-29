@@ -141,15 +141,15 @@ class Game(object):
       car = car_impl.Car(shape=(15, 10),
                          position=(start_x, start_y),
                          rotation=0.0,
-                         rotation_speed=0.05,
+                         rotation_speed=0.2,
                          base_velocity=5.0,
-                         acceleration=1.1,
+                         acceleration=100,
                          deceleration=0.8,
                          acceleration_time=20,
-                         min_velocity=0,
+                         min_velocity=-100,
                          max_velocity=100,
                          color=car_color,
-                         sensor_range=100,
+                         sensor_range=500,
                          num_sensors=self.NUM_CAR_SENSORS)
       self.cars.append(car)
       car.add_to_space(self.space)
