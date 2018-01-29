@@ -300,6 +300,7 @@ class Game(object):
       self.init_tracker()
 
     self.frames = 0
+    self.round_finish_timer = None
     self.car_idle_frames = {}
     for car in self.cars:
       new_pos = self.get_start_pos(self.X_START, self.Y_START) \
@@ -318,14 +319,15 @@ class Game(object):
 
   def build_features(self):
     features = []
+    # TODO Make inputs list [[]] great again
     for car in self.cars:
       if car.is_dead:
-        num_inputs = car.num_sensors + int(self.VELOCITY_AS_INPUT) * 2
+        num_inputs = car.num_sensors + int(self.VELOCITY_AS_INPUT)
         features.append([[0.0 for _ in range(num_inputs)]])
       else:
         inputs = [car.get_sensor_distances(self.walls)]
         if self.VELOCITY_AS_INPUT:
-          inputs[0] += [car.velocity.x, car.velocity.y]
+          inputs[0] += [car.velocity.length / car._max_velocity]
         features.append(inputs)
     return features
 
@@ -388,6 +390,8 @@ class Game(object):
         self.kill_car_if_idle(car, car in cars_in_start_region)
         self.tracker.calculate_distances()
       if car in cars_in_finish_region:
+        if self.round_finish_timer is None:
+          self.round_finish_timer = self.frames
         finishes.append(1)
       else:
         finishes.append(0)
@@ -538,7 +542,9 @@ class Game(object):
       self.update_cars()
 
       # Reset Game & Update Networks, if all cars are dead
-      if (all([car.is_dead for car in self.cars])):
+      if (all([car.is_dead for car in self.cars]) or
+          (self.round_finish_timer is not None and
+           self.frames - self.round_finish_timer > self.fps * 5)):
         print('====== Finished step {}/{} in round {} in {} sec ======'.format(
             len(self._last_fitnesses), self.AGGREGATE_MAPS, self.round,
             time.time() - round_time))

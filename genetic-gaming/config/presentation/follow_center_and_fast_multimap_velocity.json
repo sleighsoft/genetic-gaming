@@ -8,10 +8,10 @@
 	"num_top_networks_to_keep": 5,
 	"num_top_networks_to_mutate": 5,
 	"racing_game": {
-		"velocity_as_input": false,
+		"velocity_as_input": true,
 		"num_car_sensors": 8
 	},
-	"network_input_shape": 10,
+	"network_input_shape": 9,
 	"network_shape": [
 		{
 			"activation": "tanh",
@@ -80,7 +80,7 @@
 	"tf_save_model_steps": 20,
 	"single_process": true,
 	"start_mode": "random_first",
-	"randomize_map": false,
+	"randomize_map": true,
 	"aggregate_maps": 1,
 	"fix_map_rounds": 0
 }
