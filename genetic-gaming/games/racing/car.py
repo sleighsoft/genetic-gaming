@@ -130,7 +130,8 @@ class Car(object):
         if min_distance is None or distance < min_distance:
           min_distance = distance
           end = impact
-      distances.append(min_distance / self._sensor_range)
+      normalized_distance = min(max(min_distance / self._sensor_range, 0), 1.0)
+      distances.append(normalized_distance)
       points_of_impact.append(end)
 
     if screen:
