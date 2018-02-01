@@ -296,6 +296,7 @@ class Game(object):
     """Reset game state (all cars) and if """
     if self.RANDOMIZE_MAP and self.fix_map_rounds_left <= 0 and not no_map_reset:
       self.current_seed += 1
+      print(self.current_seed)
       self.init_walls(x_start=self.X_START - 10, y_start=self.Y_START)
       self.init_tracker()
 
@@ -308,6 +309,12 @@ class Game(object):
       car.reset(new_pos)
       car.add_to_space(self.space)
       self.car_idle_frames.update({car: self.frames})
+
+    self._camera_car = self.select_new_camera_car()
+
+    self.draw_options.offset = \
+        (-self._camera_car.car_body.position +
+         (pymunk.Vec2d(self.SCREEN_WIDTH, self.SCREEN_HEIGHT) * 0.5))
 
   def calculate_current_fitness(self, car):
     return self._fitness_calc(car)
@@ -353,11 +360,33 @@ class Game(object):
     return furthest
 
   def update_offset(self):
-    self._camera_car = self.select_new_camera_car()
+    # self._camera_car = self.select_new_camera_car()
 
-    self.draw_options.offset = \
-        (-self._camera_car.car_body.position +
-         (pymunk.Vec2d(self.SCREEN_WIDTH, self.SCREEN_HEIGHT) * 0.5))
+    # self.draw_options.offset = \
+    #     (-self._camera_car.car_body.position +
+    #      (pymunk.Vec2d(self.SCREEN_WIDTH, self.SCREEN_HEIGHT) * 0.5))
+    offset = pymunk.Vec2d(0,0)
+    for event in pygame.event.get():
+      if event.type == pygame.QUIT:
+        sys.exit()
+      if event.type == pygame.KEYDOWN:
+        if event.key == pygame.K_RIGHT:
+          offset += pymunk.Vec2d(-50,0)
+        if event.key == pygame.K_LEFT:
+          offset += pymunk.Vec2d(50,0)
+        if event.key == pygame.K_UP:
+          offset += pymunk.Vec2d(0,50)
+        if event.key == pygame.K_DOWN:
+          offset += pymunk.Vec2d(0,-50)
+        if event.key == pygame.K_r:
+          import uuid
+          self.current_seed = uuid.uuid4().int
+        if event.key == pygame.K_n:
+          self.reset()
+        if event.key == pygame.K_b:
+          self.current_seed -= 2
+          self.reset()
+    self.draw_options.offset += offset
 
     for car in self.cars:
       car.update_offset(self.draw_options.offset)
@@ -528,9 +557,9 @@ class Game(object):
 
     while True:
       self.clock.tick()
-      for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-          sys.exit()
+      # for event in pygame.event.get():
+      #   if event.type == pygame.QUIT:
+      #     sys.exit()
 
       self.screen.fill((255, 255, 255))
 
@@ -538,46 +567,46 @@ class Game(object):
       self.update_offset()
 
       # Update Cars
-      self.trigger_movements()
-      self.update_cars()
+      # self.trigger_movements()
+      # self.update_cars()
 
       # Reset Game & Update Networks, if all cars are dead
-      if (all([car.is_dead for car in self.cars]) or
-          (self.round_finish_timer is not None and
-           self.frames - self.round_finish_timer > self.fps * 5)):
-        print('====== Finished step {}/{} in round {} in {} sec ======'.format(
-            len(self._last_fitnesses), self.AGGREGATE_MAPS, self.round,
-            time.time() - round_time))
-        if self.fix_map_rounds_left > 0:
-          print('Rounds left until randomization: {}'.format(
-                self.fix_map_rounds_left))
-        self.fix_map_rounds_left -= 1
-        round_time = time.time()
-        # Calculate fitness of cars still alive
-        for car in self.cars:
-          if not car.is_dead:
-            self.kill_car(car)
+      # if (all([car.is_dead for car in self.cars]) or
+      #     (self.round_finish_timer is not None and
+      #      self.frames - self.round_finish_timer > self.fps * 5)):
+      #   print('====== Finished step {}/{} in round {} in {} sec ======'.format(
+      #       len(self._last_fitnesses), self.AGGREGATE_MAPS, self.round,
+      #       time.time() - round_time))
+      #   if self.fix_map_rounds_left > 0:
+      #     print('Rounds left until randomization: {}'.format(
+      #           self.fix_map_rounds_left))
+      #   self.fix_map_rounds_left -= 1
+      #   round_time = time.time()
+      #   # Calculate fitness of cars still alive
+      #   for car in self.cars:
+      #     if not car.is_dead:
+      #       self.kill_car(car)
 
-        self.store_fitnesses()
-        fitnesses = [car.fitness for car in self.cars]
-        self.fitness_history.append(fitnesses)
+      #   self.store_fitnesses()
+      #   fitnesses = [car.fitness for car in self.cars]
+      #   self.fitness_history.append(fitnesses)
 
-        if 0 < self.MAX_ROUNDS <= self.round:
-          print('###### EXITING BECAUSE OF ROUND LIMIT IN ROUND {}'
-                ' #####'.format(self.round))
-          if self.save_to:
-            with open(os.path.join(self.save_to, "fitness_history.json"),
-                      "w") as f:
-              json.dump(self.fitness_history, f)
-            with open(os.path.join(self.save_to, "finish_history.json"),
-                      "w") as f:
-              json.dump(self.finish_history, f)
-          return
+      #   if 0 < self.MAX_ROUNDS <= self.round:
+      #     print('###### EXITING BECAUSE OF ROUND LIMIT IN ROUND {}'
+      #           ' #####'.format(self.round))
+      #     if self.save_to:
+      #       with open(os.path.join(self.save_to, "fitness_history.json"),
+      #                 "w") as f:
+      #         json.dump(self.fitness_history, f)
+      #       with open(os.path.join(self.save_to, "finish_history.json"),
+      #                 "w") as f:
+      #         json.dump(self.finish_history, f)
+      #     return
 
-        if len(self._last_fitnesses) == self.AGGREGATE_MAPS:
-          self.run_evolution()
+      #   if len(self._last_fitnesses) == self.AGGREGATE_MAPS:
+      #     self.run_evolution()
 
-        self.reset()
+      #   self.reset()
 
       # Draw centers
       for center in self.centers:
