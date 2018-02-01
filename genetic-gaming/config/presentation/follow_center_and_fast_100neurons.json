@@ -11,7 +11,7 @@
 		"velocity_as_input": false,
 		"num_car_sensors": 8
 	},
-	"network_input_shape": 10,
+	"network_input_shape": 8,
 	"network_shape": [
 		{
 			"activation": "tanh",
