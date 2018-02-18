@@ -7,7 +7,7 @@ from pymunk import Vec2d
 class Car(object):
 
   def __init__(self, shape, position, rotation, rotation_speed, base_velocity,
-               acceleration, deceleration, acceleration_time,
+               acceleration, deceleration, acceleration_time, min_velocity,
                max_velocity, color, sensor_range, num_sensors,
                sensor_color=(0, 0, 0)):
     # Static
@@ -19,6 +19,7 @@ class Car(object):
     self._acceleration = acceleration
     self._deceleration = deceleration
     self._acceleration_time = acceleration_time
+    self._min_velocity = min_velocity
     self._max_velocity = max_velocity
     self._color = color
     self._sensor_range = sensor_range
@@ -59,8 +60,7 @@ class Car(object):
     self.fitness = 0.0
     self.previous_position = self._position
     # Last car movement
-    self.last_right_turn = 0.0
-    self.last_left_turn = 0.0
+    self.last_turn = 0.0
     self.last_acceleration = 0.0
 
   def update_offset(self, offset):
@@ -81,16 +81,16 @@ class Car(object):
     sensors = []
     start = s_x, s_y = self.car_body.position
 
-    # TODO Automatically create sensors based on self._num_sensors
-    # Sensors should have same distance
-    direction_offset = self._sensor_range / math.sqrt(2)
-    sensor_directions = [start + (0, self._sensor_range),               # Left
-                         # Half Left
-                         start + (direction_offset, direction_offset),
-                         start + (self._sensor_range, 0),               # Ahead
-                         start + (direction_offset, - \
-                                  direction_offset),  # Half Right
-                         start + (0, -self._sensor_range)]              # Right
+    def rotate_point(length, radians):
+      x = length * math.sin(radians)
+      y = length * math.cos(radians)
+      return x, y
+
+    sensor_directions = []
+    for i in range(self._num_sensors):
+      sensor_directions.append(
+          start + rotate_point(self._sensor_range, i * math.pi /
+                               (self._num_sensors - 1)))
 
     for sensor_direction in sensor_directions:
       rotation = self.car_body.angle
@@ -130,7 +130,8 @@ class Car(object):
         if min_distance is None or distance < min_distance:
           min_distance = distance
           end = impact
-      distances.append(min_distance)
+      normalized_distance = min(max(min_distance / self._sensor_range, 0), 1.0)
+      distances.append(normalized_distance)
       points_of_impact.append(end)
 
     if screen:
@@ -144,24 +145,20 @@ class Car(object):
   def trigger_rotate_right(self):
     self.rotation += self._rotation_speed
 
-  def trigger_acceleration(self):
-    if self.current_acceleration_time == 0:
-      self._velocity = self._base_velocity
-    else:
-      self._velocity = min(self._max_velocity,
-                           self._velocity * self._acceleration)
-    self.current_acceleration_time = self._acceleration_time
+  def trigger_rotation(self, value):
+    self.rotation += self._rotation_speed * value
+
+  def trigger_acceleration(self, value):
+    actual_velocity = self._velocity + (self._acceleration * value)
+    self._velocity = max(self._min_velocity, min(
+        self._max_velocity, actual_velocity))
 
   def move(self):
     """Perform all triggered movements."""
-    if self.current_acceleration_time > 0:
-      self.current_acceleration_time -= 1
-    else:
-      self._velocity = max(0, self._velocity * self._deceleration)
     driving_direction = Vec2d(1, 0).rotated(self.rotation)
     self.car_body.angle = self.rotation
     self.car_body.velocity = self._velocity * driving_direction
-    self.velocities.append(self.car_body.velocity.get_length())
+    self.velocities.append(self._velocity)
 
   @staticmethod
   def get_rotated_point(x_1, y_1, x_2, y_2, radians):

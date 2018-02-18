@@ -1,0 +1,86 @@
+{
+	"game": "racing",
+	"model": "genetic",
+	"host": "localhost",
+	"map_generator": "random",
+	"port": 4004,
+	"num_networks": 20,
+	"num_top_networks_to_keep": 5,
+	"num_top_networks_to_mutate": 5,
+	"racing_game": {
+		"velocity_as_input": true,
+		"num_car_sensors": 8
+	},
+	"network_input_shape": 9,
+	"network_shape": [
+		{
+			"activation": "tanh",
+			"shape": 100,
+			"kernel_initializer": null,
+			"bias_initializer": null,
+			"use_bias": true
+		},
+		{
+			"activation": "tanh",
+			"shape": 2,
+			"kernel_initializer": null,
+			"bias_initializer": null,
+			"use_bias": true
+		}
+	],
+	"map_generator_conf": {
+        "min_width": 60,
+		"max_width": 60,
+        "min_angle": 0.31415,
+		"max_angle": 0.9424,
+        "min_length": 100,
+		"max_length": 100
+	},
+	"fitness_mode": "composite",
+	"fitness_function_conf": [
+		{
+            "func": "path",
+            "weight": 1
+        },
+        {
+            "func": "path_end",
+            "weight": 1
+        },
+        {
+            "func": "divide",
+            "weight": 1,
+            "params": [
+                {
+                    "func": "path",
+                    "weight": 1
+                },
+                {
+                    "func": "frames",
+                    "weight": 1
+                }
+            ]
+        },
+        {
+            "func": "close_to_path",
+            "weight": 1
+        }
+    ],
+	"mutation_params": {
+		"c1": 1.0,
+		"c2": 1.0,
+		"c3": 0.2
+	},
+	"mutation_rate": 0.5,
+	"evolve_bias": true,
+	"evolve_kernel": true,
+	"scope": "network",
+	"send_pixels": false,
+	"tf_seed": null,
+	"game_seed": 249934098895071520504998917937881504001,
+	"tf_save_model_steps": 20,
+	"single_process": true,
+	"start_mode": "random_first",
+	"randomize_map": false,
+	"aggregate_maps": 1,
+	"fix_map_rounds": 0
+}

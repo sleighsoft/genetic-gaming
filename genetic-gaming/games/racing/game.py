@@ -2,7 +2,6 @@ import argparse
 import sys
 import os
 import math
-import uuid
 
 import msgpackrpc
 import numpy as np
@@ -93,7 +92,7 @@ class Game(object):
     wall_coll_handler.begin = collision_handler
 
     self.X_START = 50
-    self.Y_START = 65
+    self.Y_START = self.GAME_HEIGHT / 2
     self.Y_RANDOM_RANGE = 20
 
     # Game vars
@@ -147,6 +146,7 @@ class Game(object):
                          acceleration=1.1,
                          deceleration=0.8,
                          acceleration_time=20,
+                         min_velocity=0,
                          max_velocity=100,
                          color=car_color,
                          sensor_range=100,
@@ -300,6 +300,7 @@ class Game(object):
       self.init_tracker()
 
     self.frames = 0
+    self.round_finish_timer = None
     self.car_idle_frames = {}
     for car in self.cars:
       new_pos = self.get_start_pos(self.X_START, self.Y_START) \
@@ -318,15 +319,15 @@ class Game(object):
 
   def build_features(self):
     features = []
+    # TODO Make inputs list [[]] great again
     for car in self.cars:
       if car.is_dead:
-        # TODO Make this dynamically adjust to num_sensors
-        num_inputs = car.num_sensors + int(self.VELOCITY_AS_INPUT) * 2
+        num_inputs = car.num_sensors + int(self.VELOCITY_AS_INPUT)
         features.append([[0.0 for _ in range(num_inputs)]])
       else:
         inputs = [car.get_sensor_distances(self.walls)]
         if self.VELOCITY_AS_INPUT:
-          inputs[0] += [car.velocity.x, car.velocity.y]
+          inputs[0] += [car.velocity.length / car._max_velocity]
         features.append(inputs)
     return features
 
@@ -369,15 +370,10 @@ class Game(object):
       movements = self.predict()
       for movement, car in zip(movements, self.cars):
         if not car.is_dead:
-          if movement[0] > 0.5 and movement[1] <= 0.5:
-            car.trigger_rotate_right()
-            car.last_right_turn = movement[0]
-          if movement[1] > 0.5 and movement[0] <= 0.5:
-            car.trigger_rotate_left()
-            car.last_left_turn = movement[1]
-          if movement[2] > 0.5:
-            car.trigger_acceleration()
-            car.last_acceleration = movement[2]
+          car.trigger_rotation(movement[0])
+          car.last_turn = movement[0]
+          car.trigger_acceleration(movement[1])
+          car.last_acceleration = movement[1]
     else:
       self.manual_controls()
 
@@ -394,6 +390,8 @@ class Game(object):
         self.kill_car_if_idle(car, car in cars_in_start_region)
         self.tracker.calculate_distances()
       if car in cars_in_finish_region:
+        if self.round_finish_timer is None:
+          self.round_finish_timer = self.frames
         finishes.append(1)
       else:
         finishes.append(0)
@@ -404,7 +402,6 @@ class Game(object):
     car.fitness = self.calculate_current_fitness(car)
     car.car_shape.color = (205, 206, 214)
     car.car_body.velocity = pymunk.Vec2d(0, 0)
-    # car.remove_from_space()
 
   def get_cars_in_region(self, region):
     query_shapes = [q.shape for q in self.space.shape_query(region)]
@@ -453,7 +450,11 @@ class Game(object):
 
   def render_sidebar(self):
     font = pygame.font.SysFont("Arial", 15)
+    bar_length = 150
     x_position = 20
+    pygame.draw.rect(self.screen, (255, 255, 255),
+                     pygame.Rect(0, 0, bar_length + 35,
+                                 self.GAME_HEIGHT))
     self.screen.blit(
         font.render(
             str('Round: {}'.format(self.round)),
@@ -469,7 +470,6 @@ class Game(object):
           (x_position + 80, 20))
       pygame.draw.rect(self.screen, self._last_best_car._color,
                        pygame.Rect(x_position + 110, 20 + 5, 15, 10))
-    bar_length = 180
     i = 0
     for car in self.cars:
       if not car.is_dead:
@@ -486,36 +486,32 @@ class Game(object):
                          (x_position + bar_length, bar_y_position))
 
         def create_move_bar(probability, x, y, width, max_height):
-          bar_color = (183, 18, 43) if probability <= 0.5 else (66, 244, 69)
-          bar_height = max_height * probability
-          bar_y_pos = y - bar_height + max_height
-          bar_rect = pygame.Rect(x, bar_y_pos, width, bar_height)
+          probability *= -1
+          bar_color = (183, 18, 43) if probability > 0 else (66, 244, 69)
+          max_height = max_height / 2
+          y += max_height
+          # -2 so it does not overlap with the horizontal lines
+          bar_height = (max_height - 2) * probability
+          bar_rect = pygame.Rect(x, y, width, bar_height)
           pygame.draw.rect(self.screen, bar_color, bar_rect)
 
         bar_width = 20
-        bar_max_height = 25
-        y = y_position
+        bar_max_height = 30
         # Right turn
         x_bar = x_position + 70
         x_text = x_position + 55
-        self.screen.blit(font.render('R:', -1, (0, 0, 0)),
-                         (x_text, y_position))
-        create_move_bar(car.last_right_turn, x_bar,
-                        y, bar_width, bar_max_height)
+        rotate_label = 'R' if car.last_turn > 0 else 'L'
+        self.screen.blit(font.render('{}:'.format(rotate_label), -1,
+                                     (0, 0, 0)), (x_text, y_position))
+        create_move_bar(car.last_turn, x_bar,
+                        bar_y_position, bar_width, bar_max_height)
         # Left turn
         x_bar = x_position + 110
         x_text = x_position + 95
-        self.screen.blit(font.render('L:', -1, (0, 0, 0)),
-                         (x_text, y_position))
-        create_move_bar(car.last_left_turn, x_bar,
-                        y, bar_width, bar_max_height)
-        # Acceleration turn
-        x_bar = x_position + 150
-        x_text = x_position + 135
         self.screen.blit(font.render('A:', -1, (0, 0, 0)),
                          (x_text, y_position))
         create_move_bar(car.last_acceleration, x_bar,
-                        y, bar_width, bar_max_height)
+                        bar_y_position, bar_width, bar_max_height)
         i += 1
 
     # Render last line
@@ -545,11 +541,10 @@ class Game(object):
       self.trigger_movements()
       self.update_cars()
 
-      # Show sidebar
-      self.render_sidebar()
-
       # Reset Game & Update Networks, if all cars are dead
-      if (all([car.is_dead for car in self.cars])):
+      if (all([car.is_dead for car in self.cars]) or
+          (self.round_finish_timer is not None and
+           self.frames - self.round_finish_timer > self.fps * 5)):
         print('====== Finished step {}/{} in round {} in {} sec ======'.format(
             len(self._last_fitnesses), self.AGGREGATE_MAPS, self.round,
             time.time() - round_time))
@@ -593,6 +588,8 @@ class Game(object):
       # Pymunk & Pygame calls
       if os.environ.get('SDL_VIDEODRIVER') is None:
         self.space.debug_draw(self.draw_options)
+        # Show sidebar here so it overlays the map
+        self.render_sidebar()
         pygame.display.update()
       dt = 1. / (self.fps)
       self.space.step(dt)
