@@ -553,6 +553,10 @@ def get_genetic_validator(argument=None):
       function=GeneticValidator.validate_mutation_params,
       disable_to_argparse=True
   )
+  argument.register_parameter(
+      'num_car_sensors',
+      int,
+      'Amount of sensors a car should have')
   return argument
 
 

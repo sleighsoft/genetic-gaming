@@ -32,7 +32,7 @@ class Game(object):
     # Racing game only settings
     game_settings = args['racing_game']
     self.VELOCITY_AS_INPUT = game_settings['velocity_as_input']
-    self.NUM_CAR_SENSORS = game_settings['num_car_sensors']
+    self.NUM_CAR_SENSORS = args['num_car_sensors'] if args.get('num_car_sensors', False) else game_settings['num_car_sensors']
 
     # RPC proxy to machine learning agent
     self.client = msgpackrpc.Client(

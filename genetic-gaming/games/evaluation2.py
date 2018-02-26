@@ -4,6 +4,7 @@ import sys
 from time import gmtime, strftime
 
 # Fixed Parameters
+N = 10
 PARALLELIZE = False
 PROCESSES = 5
 MAX_ROUNDS = 100
@@ -155,17 +156,28 @@ if __name__ == '__main__':
 
   ### Evaluation Setup
   # 1) Average over 10 rounds until goal: Vary mutation rate from 0.1 to 0.9 + Dynamic
-  for evalround in range(3):
-    for mutation_rate in range(2, 8):
-      mutation_rate /= 10.0
-      save_to_test_1 = save_to + "evalround_{}_test1_mutation_rate_{}".format(evalround, mutation_rate)
-      command = COMMAND_TEMPLATE_EXTENDED.format(save_to=save_to_test_1, map_seed=DEFAULT_MAP_SEED) + " -mutation_rate {}"
-      command = command.format(mutation_rate)
-      print(command)
+  if '-mutation_rates' in args:
+    for eval_round in range(N):
+      for mutation_rate in range(2, 8):
+        mutation_rate /= 10.0
+        save_to_test_1 = save_to + "evalround_{}_test1_mutation_rate_{}".format(eval_round, mutation_rate)
+        command = COMMAND_TEMPLATE_EXTENDED.format(save_to=save_to_test_1, map_seed=DEFAULT_MAP_SEED) + " -mutation_rate {}"
+        command = command.format(mutation_rate)
+        print(command)
+        commands.append(command)
+      save_to_test_1 = save_to + "evalround_{}_test1_mutation_rate_dynamic".format(eval_round)
+      command = COMMAND_TEMPLATE_EXTENDED.format(save_to=save_to_test_1, map_seed=DEFAULT_MAP_SEED)
       commands.append(command)
-    save_to_test_1 = save_to + "evalround_{}_test1_mutation_rate_dynamic".format(evalround)
-    command = COMMAND_TEMPLATE_EXTENDED.format(save_to=save_to_test_1, map_seed=DEFAULT_MAP_SEED)
-    commands.append(command)
+
+  # 2) Number of sensors
+  if '-sensors' in args:
+    for eval_round in range(N):
+      for num_sensor in range(2, 11):
+        save_to_test_2 = save_to + "evalround_{}_test2_sensors_{}".format(eval_round, num_sensor)
+        command = COMMAND_TEMPLATE_EXTENDED.format(save_to=save_to_test_2, map_seed=DEFAULT_MAP_SEED) + " -num_car_sensors {} -network_input_shape {}"
+        command = command.format(num_sensor, num_sensor + 1)
+        commands.append(command)
+
 
   for map_config_file, map_seeds in zip(map_config_files, map_seeds_list):
     for map_description in map_seeds.keys():
