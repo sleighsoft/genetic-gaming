@@ -683,6 +683,11 @@ def create_arg_parse():
       action='store_true'
   )
   parser.add_argument(
+    '-terminate_if_finished',
+    help='Terminate once at least one car reaches the finishing line.',
+    action='store_true'
+  )
+  parser.add_argument(
       '--help',
       action='store_true',
       default=argparse.SUPPRESS,

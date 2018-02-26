@@ -63,6 +63,7 @@ class Game(object):
     self.fitness_history = []
     self.finish_history = []
     self.save_to = args['save_to']
+    self.TERMINATE_IF_FINISHED = args['terminate_if_finished']
 
     # Pygame
     # flags = pygame.HWSURFACE | pygame.FULLSCREEN
@@ -562,9 +563,14 @@ class Game(object):
         fitnesses = [car.fitness for car in self.cars]
         self.fitness_history.append(fitnesses)
 
-        if 0 < self.MAX_ROUNDS <= self.round:
-          print('###### EXITING BECAUSE OF ROUND LIMIT IN ROUND {}'
+        at_least_one_car_just_finished = 1 in self.finish_history[-1]
+        if 0 < self.MAX_ROUNDS <= self.round or (at_least_one_car_just_finished and self.TERMINATE_IF_FINISHED):
+          if 0 < self.MAX_ROUNDS <= self.round:
+            print('###### EXITING BECAUSE OF ROUND LIMIT IN ROUND {}'
                 ' #####'.format(self.round))
+          else:
+            print('###### EXITING BECAUSE {} CARS REACHED GOAL IN ROUND {}'
+                  ' #####'.format(sum(self.finish_history[-1]), self.round))
           if self.save_to:
             with open(os.path.join(self.save_to, "fitness_history.json"),
                       "w") as f:
