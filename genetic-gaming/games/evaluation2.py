@@ -10,7 +10,7 @@ PROCESSES = 5
 MAX_ROUNDS = 100
 NUM_NETWORKS = 10
 DEFAULT_MAP_SEED = 139340055862053188856456977621891175344 #'Complex 8 shaped'
-DEFAULT_MAP_SEED = 249934098895071520504998917937881504001
+#DEFAULT_MAP_SEED = 249934098895071520504998917937881504001
 COMMAND_TEMPLATE_BASE = "python genetic-gaming/run.py -terminate_if_finished " \
                         "-max_rounds " + str(MAX_ROUNDS) + " -headless " \
                                                            "-num_networks " + str(NUM_NETWORKS) + " " \
@@ -161,7 +161,7 @@ if __name__ == '__main__':
       for mutation_rate in range(2, 8):
         mutation_rate /= 10.0
         save_to_test_1 = save_to + "evalround_{}_test1_mutation_rate_{}".format(eval_round, mutation_rate)
-        command = COMMAND_TEMPLATE_EXTENDED.format(save_to=save_to_test_1, map_seed=DEFAULT_MAP_SEED) + " -mutation_rate {}"
+        command = COMMAND_TEMPLATE_EXTENDED.format(save_to=save_to_test_1, map_seed=DEFAULT_MAP_SEED) + " -num_car_sensors 8 -mutation_rate {}"
         command = command.format(mutation_rate)
         print(command)
         commands.append(command)
