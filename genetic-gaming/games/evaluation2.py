@@ -178,6 +178,18 @@ if __name__ == '__main__':
         command = command.format(num_sensor, num_sensor + 1)
         commands.append(command)
 
+  # 3) Fitness Functions
+  if '-fitness_functions' in args:
+    for eval_round in range(N):
+      for fitness in ['composite', 'path', 'path_end', 'close_to_path']:
+        save_to_test_3 = save_to + "evalround_{}_test3_functions_{}".format(eval_round, fitness)
+        if fitness == 'composite':
+          command = COMMAND_TEMPLATE_EXTENDED.format(save_to=save_to_test_3, map_seed=DEFAULT_MAP_SEED) + " -num_car_sensors 8"
+        else:
+          command = COMMAND_TEMPLATE_EXTENDED.format(save_to=save_to_test_3, map_seed=DEFAULT_MAP_SEED) + " -num_car_sensors 8 -fitness_mode {}"
+          command = command.format(fitness)
+        commands.append(command)
+
 
   for map_config_file, map_seeds in zip(map_config_files, map_seeds_list):
     for map_description in map_seeds.keys():
