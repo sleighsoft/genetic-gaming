@@ -9,8 +9,8 @@ PARALLELIZE = False
 PROCESSES = 5
 MAX_ROUNDS = 100
 NUM_NETWORKS = 10
-DEFAULT_MAP_SEED = 139340055862053188856456977621891175344 #'Complex 8 shaped'
-#DEFAULT_MAP_SEED = 249934098895071520504998917937881504001
+DEFAULT_MAP_SEED = 139340055862053188856456977621891175344  # 'Complex 8 shaped'
+# DEFAULT_MAP_SEED = 249934098895071520504998917937881504001
 COMMAND_TEMPLATE_BASE = "python genetic-gaming/run.py -terminate_if_finished " \
                         "-max_rounds " + str(MAX_ROUNDS) + " -headless " \
                                                            "-num_networks " + str(NUM_NETWORKS) + " " \
@@ -19,13 +19,14 @@ COMMAND_TEMPLATE_EXTENDED = COMMAND_TEMPLATE_BASE + " " \
                                                     "-game_seed {map_seed} " \
                                                     "-config genetic-gaming/config/racing.json"
 
+
 # "-config genetic-gaming/config/evaluation/{config_file}"
 
 
 def worker(cmd):
-    process = subprocess.Popen(cmd.split(' '), stdout=subprocess.PIPE)
-    out, _ = process.communicate()
-    return out
+  process = subprocess.Popen(cmd.split(' '), stdout=subprocess.PIPE)
+  out, _ = process.communicate()
+  return out
 
 
 if __name__ == '__main__':
@@ -161,7 +162,8 @@ if __name__ == '__main__':
       for mutation_rate in range(2, 8):
         mutation_rate /= 10.0
         save_to_test_1 = save_to + "evalround_{}_test1_mutation_rate_{}".format(eval_round, mutation_rate)
-        command = COMMAND_TEMPLATE_EXTENDED.format(save_to=save_to_test_1, map_seed=DEFAULT_MAP_SEED) + " -num_car_sensors 8 -mutation_rate {}"
+        command = COMMAND_TEMPLATE_EXTENDED.format(save_to=save_to_test_1,
+                                                   map_seed=DEFAULT_MAP_SEED) + " -num_car_sensors 8 -mutation_rate {}"
         command = command.format(mutation_rate)
         print(command)
         commands.append(command)
@@ -174,7 +176,8 @@ if __name__ == '__main__':
     for eval_round in range(N):
       for num_sensor in range(2, 11):
         save_to_test_2 = save_to + "evalround_{}_test2_sensors_{}".format(eval_round, num_sensor)
-        command = COMMAND_TEMPLATE_EXTENDED.format(save_to=save_to_test_2, map_seed=DEFAULT_MAP_SEED) + " -num_car_sensors {} -network_input_shape {}"
+        command = COMMAND_TEMPLATE_EXTENDED.format(save_to=save_to_test_2,
+                                                   map_seed=DEFAULT_MAP_SEED) + " -num_car_sensors {} -network_input_shape {}"
         command = command.format(num_sensor, num_sensor + 1)
         commands.append(command)
 
@@ -184,12 +187,23 @@ if __name__ == '__main__':
       for fitness in ['composite', 'path', 'path_end', 'close_to_path']:
         save_to_test_3 = save_to + "evalround_{}_test3_functions_{}".format(eval_round, fitness)
         if fitness == 'composite':
-          command = COMMAND_TEMPLATE_EXTENDED.format(save_to=save_to_test_3, map_seed=DEFAULT_MAP_SEED) + " -num_car_sensors 8"
+          command = COMMAND_TEMPLATE_EXTENDED.format(save_to=save_to_test_3,
+                                                     map_seed=DEFAULT_MAP_SEED) + " -num_car_sensors 8"
         else:
-          command = COMMAND_TEMPLATE_EXTENDED.format(save_to=save_to_test_3, map_seed=DEFAULT_MAP_SEED) + " -num_car_sensors 8 -fitness_mode {}"
+          command = COMMAND_TEMPLATE_EXTENDED.format(save_to=save_to_test_3,
+                                                     map_seed=DEFAULT_MAP_SEED) + " -num_car_sensors 8 -fitness_mode {}"
           command = command.format(fitness)
         commands.append(command)
 
+  # 3) Fitness Functions
+  if '-start_modes' in args:
+    for eval_round in range(N):
+      for location in ['fixed', 'random_each']:
+        save_to_test_4 = save_to + "evalround_{}_test4_location_{}".format(eval_round, location)
+        command = COMMAND_TEMPLATE_EXTENDED.format(save_to=save_to_test_4,
+                                                   map_seed=DEFAULT_MAP_SEED) + " -num_car_sensors 8 -start_mode {}"
+        command = command.format(location)
+        commands.append(command)
 
   for map_config_file, map_seeds in zip(map_config_files, map_seeds_list):
     for map_description in map_seeds.keys():
@@ -212,16 +226,15 @@ if __name__ == '__main__':
       #         out, _ = process.communicate()
       #         print(out)
 
-
   if PARALLELIZE:
-      pool = multiprocessing.Pool(processes=PROCESSES)
-      pool_outputs = pool.map(worker, commands)
-      pool.close()
-      pool.join()
-      print('Pool:', pool_outputs)
+    pool = multiprocessing.Pool(processes=PROCESSES)
+    pool_outputs = pool.map(worker, commands)
+    pool.close()
+    pool.join()
+    print('Pool:', pool_outputs)
   else:
     for c in commands:
-        print(c)
-        process = subprocess.Popen(c.split(' '), stdout=subprocess.PIPE)
-        out, _ = process.communicate()
-        print(out)
+      print(c)
+      process = subprocess.Popen(c.split(' '), stdout=subprocess.PIPE)
+      out, _ = process.communicate()
+      print(out)
