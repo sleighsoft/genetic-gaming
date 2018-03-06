@@ -5,10 +5,10 @@ import tqdm
 from time import gmtime, strftime
 
 # Fixed Parameters
-N = 10
+N = 5
 PARALLELIZE = False
-PROCESSES = 7
-MAX_ROUNDS = 100
+PROCESSES = 4
+MAX_ROUNDS = 50
 NUM_NETWORKS = 10
 DEFAULT_MAP_SEED = 139340055862053188856456977621891175344  # 'Complex 8 shaped'
 # DEFAULT_MAP_SEED = 249934098895071520504998917937881504001
@@ -207,12 +207,12 @@ if __name__ == '__main__':
                 commands.append(command)
 
     # 5) Maps + Mutation Rate
-    if '-maps' in args:
+    if '-maps_mutation_rate' in args:
         for map_config_file, map_seeds in zip(map_config_files, map_seeds_list):
             for map_description in map_seeds.keys():
                 for eval_round in range(N):
-                    for mutation_rate in [0.1, 0.8, 0.9]:
-                        #mutation_rate /= 10.0
+                    for mutation_rate in range(1, 10):
+                        mutation_rate /= 10.0
                         save_to_test_5 = save_to + "evalround_{}_test5_seed_{}_mutation_rate_{}".format(
                             eval_round, map_seeds[map_description], mutation_rate)
                         command = "python genetic-gaming/run.py -terminate_if_finished -num_car_sensors 8 -config genetic-gaming/config/racing.json " \
@@ -226,7 +226,28 @@ if __name__ == '__main__':
                               "-max_rounds " + str(MAX_ROUNDS) + " -headless -num_networks " + str(NUM_NETWORKS) + " " \
                                                                                                                    "-save_to {} -game_seed {}"
                     command = command.format(save_to_test_5, map_seeds[map_description])
-                    #commands.append(command)
+                    commands.append(command)
+
+    # 6) Maps + Sensors
+    if '-maps_sensors' in args:
+        for map_config_file, map_seeds in zip(map_config_files, map_seeds_list):
+            for map_description in map_seeds.keys():
+                for eval_round in range(N):
+                    for num_sensor in range(2, 11):
+                        save_to_test_6 = save_to + "evalround_{}_test5_seed_{}_sensors_{}".format(
+                            eval_round, map_seeds[map_description], num_sensor)
+                        command = "python genetic-gaming/run.py -terminate_if_finished -num_car_sensors 8 -config genetic-gaming/config/racing.json " \
+                                  "-max_rounds " + str(MAX_ROUNDS) + " -headless -num_networks " + str(NUM_NETWORKS) + " " \
+                                                                                                                       "-save_to {} -game_seed {} -num_car_sensors {} -network_input_shape {}"
+                        command = command.format(save_to_test_6, map_seeds[map_description], num_sensor, num_sensor + 1)
+                        commands.append(command)
+                    save_to_test_6 = save_to + "evalround_{}_test5_seed_{}_mutation_rate_dynamic".format(
+                        eval_round, map_seeds[map_description])
+                    command = "python genetic-gaming/run.py -terminate_if_finished -num_car_sensors 8 -config genetic-gaming/config/racing.json " \
+                              "-max_rounds " + str(MAX_ROUNDS) + " -headless -num_networks " + str(NUM_NETWORKS) + " " \
+                                                                                                                   "-save_to {} -game_seed {} -num_car_sensors {} -network_input_shape {}"
+                    command = command.format(save_to_test_6, map_seeds[map_description], num_sensor, num_sensor + 1)
+                    commands.append(command)
 
     if PARALLELIZE:
         results = []
