@@ -249,6 +249,20 @@ if __name__ == '__main__':
                     command = command.format(save_to_test_6, map_seeds[map_description], num_sensor, num_sensor + 1)
                     commands.append(command)
 
+    # 7) Maps + Start Modes
+    if '-maps_start_modes' in args:
+        for map_config_file, map_seeds in zip(map_config_files, map_seeds_list):
+            for map_description in map_seeds.keys():
+                for eval_round in range(N):
+                    for location in ['fixed', 'random_each']:
+                        save_to_test_7 = save_to + "evalround_{}_test7_seed_{}_start_mode_{}".format(
+                            eval_round, map_seeds[map_description], location)
+                        command = "python genetic-gaming/run.py -terminate_if_finished -num_car_sensors 8 -config genetic-gaming/config/evaluation/{} " \
+                                  "-max_rounds " + str(MAX_ROUNDS) + " -headless -num_networks " + str(NUM_NETWORKS) + " " \
+                                                                                                                       "-save_to {} -game_seed {} -start_mode {}"
+                        command = command.format(map_config_file, save_to_test_7, map_seeds[map_description], location)
+                        commands.append(command)
+
     if PARALLELIZE:
         results = []
         with multiprocessing.Pool(processes=PROCESSES) as p:
@@ -256,7 +270,6 @@ if __name__ == '__main__':
                 for result in tqdm.tqdm(enumerate(p.imap_unordered(worker, commands))):
                     progress_bar.update()
                     results.append(result)
-        print(results)
 
         # pool = multiprocessing.Pool(processes=PROCESSES)
         # pool_outputs = pool.map(worker, commands)
