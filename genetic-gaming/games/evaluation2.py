@@ -281,6 +281,30 @@ if __name__ == '__main__':
               command += " -fitness_mode {}".format(fitness)
             commands.append(command)
 
+
+  # 9) Evaluate Randomized Map vs. Static Map
+  # Randomized: train on 30 maps that are not intersected with the validation maps for one epoch
+  # python genetic-gaming/run.py -config genetic-gaming/config/racing.json -num_car_sensors 8 -save_to random -max_rounds 30
+  # Static: train on complex DEFAULT_MAP for 30 epochs
+  # python genetic-gaming/run.py -config genetic-gaming/config/racing.json -num_car_sensors 8 -save_to static -max_rounds 30 -game_seed 139340055862053188856456977621891175344
+  if '-static_dynamic' in args:
+    validation_maps = [v for x in map_seeds_list for k, v in x.items()]
+    for map_config_file, map_seeds in zip(map_config_files, map_seeds_list):
+      for map_description in map_seeds.keys():
+        c_random = "python genetic-gaming/run.py -nui3m_car_sensors 8 -config genetic-gaming/config/evaluation/{} " \
+                   "-max_rounds " + str(MAX_ROUNDS) + " -headless -num_networks " + str(NUM_NETWORKS) + " " \
+                   "-restore_from random30 -save_to {} -game_seed {} -max_rounds 1"
+        save_random = save_to + "evalround_0_test9_seed_{}_mode_random".format(map_seeds[map_description])
+        c_random = c_random.format(map_config_file, save_random, map_seeds[map_description])
+        #commands.append(c_random)
+
+        c_static = "python genetic-gaming/run.py -num_car_sensors 8 -config genetic-gaming/config/evaluation/{} " \
+                   "-max_rounds " + str(MAX_ROUNDS) + " -headless -num_networks " + str(NUM_NETWORKS) + " " \
+                   "-restore_from static30_simple -save_to {} -game_seed {} -max_rounds 1"
+        save_random = save_to + "evalround_0_test9_seed_{}_mode_static_simple".format(map_seeds[map_description])
+        c_static = c_static.format(map_config_file, save_random, map_seeds[map_description])
+        commands.append(c_static)
+
   if PARALLELIZE:
     results = []
     with multiprocessing.Pool(processes=PROCESSES) as p:
